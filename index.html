@@ -29,6 +29,8 @@
 *,*::before,*::after{box-sizing:border-box}
 img{max-width:100%}
 html,body{height:100%}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+*{touch-action:manipulation}
 body{margin:0;background:var(--forest);color:var(--cream);font-family:var(--font);
   -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;overflow:hidden;touch-action:manipulation}
 button{font-family:inherit;cursor:pointer}
@@ -526,13 +528,21 @@ function tile(t,p,colorOwner,size,flip,modeKey){
   el.setAttribute('role','img');el.setAttribute('aria-label',pieceLongName(t,p));
   return el;
 }
+// Measure the stage only when the window really changes size (rotation etc.), so that
+// Safari toolbars appearing/disappearing don't make the board jump while playing.
+let lay={w:0,h:0,mode:null,cell:0};
 function layout(){
-  const st=$('stage').getBoundingClientRect(), m=M();
+  const m=M(),w=window.innerWidth,h=window.innerHeight;
+  if(lay.cell&&lay.mode===mode&&Math.abs(w-lay.w)<2&&Math.abs(h-lay.h)<120){
+    document.documentElement.style.setProperty('--cell',lay.cell+'px');return lay.cell}
+  const st=$('stage').getBoundingClientRect();
   const cell=Math.max(28,Math.floor(Math.min((st.width-12)/m.cols,(st.height-16)/m.rows,190)));
+  lay={w,h,mode,cell};
   document.documentElement.style.setProperty('--cell',cell+'px');
   return cell;
 }
-function handSize(){return Math.round(Math.max(44,Math.min(80,window.innerHeight*0.075)))}
+let hsCache={h:0,v:0};
+function handSize(){const h=window.innerHeight;if(!hsCache.v||Math.abs(h-hsCache.h)>=120)hsCache={h,v:Math.round(Math.max(44,Math.min(80,h*0.075)))};return hsCache.v}
 function segButtons(el,items,active,onPick,label){
   el.innerHTML='';
   if(label){const l=document.createElement('span');l.className='lbl';l.textContent=label;el.appendChild(l)}
@@ -743,9 +753,12 @@ function loadImage(file,t,p){
 // ---------- misc ----------
 let lock=null;
 function wake(){if(lock||!navigator.wakeLock)return;navigator.wakeLock.request('screen').then(l=>{lock=l;l.addEventListener('release',()=>lock=null)}).catch(()=>{})}
+document.addEventListener('gesturestart',e=>e.preventDefault(),{passive:false});
+document.addEventListener('dblclick',e=>e.preventDefault(),{passive:false});
 let rt;window.addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(render,80)});
 loadMode();render();maybeCpu();
-if(document.fonts&&document.fonts.ready)document.fonts.ready.then(render);
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{lay.cell=0;render()});
+window.addEventListener('orientationchange',()=>{lay.cell=0;hsCache.v=0;setTimeout(render,300)});
 })();
 </script>
 
