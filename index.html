@@ -81,6 +81,9 @@ button:focus-visible{outline:3px solid var(--hi);outline-offset:2px}
 .pc.c0{--own:var(--p0)}.pc.c1{--own:var(--p1)}
 .pc.flip{transform:rotate(180deg)}
 .pc.pro{background:linear-gradient(160deg,#ffe0e4,var(--tint))}
+.pc .art{position:absolute;left:50%;top:41%;width:calc(var(--s)*.52);height:calc(var(--s)*.52);transform:translate(-50%,-50%)}
+.pc .art svg{width:100%;height:100%;display:block;overflow:visible}
+.pc.tiny .art{top:50%;width:calc(var(--s)*.64);height:calc(var(--s)*.64)}
 .pc .emo{position:absolute;left:0;right:0;top:44%;transform:translateY(-50%);text-align:center;font-size:calc(var(--s)*.46);line-height:1}
 .pc .nm{position:absolute;left:0;right:0;top:69%;text-align:center;font-weight:900;font-size:calc(var(--s)*.12);line-height:1;white-space:nowrap;letter-spacing:-.02em}
 .pc.pro .nm{color:#c0392b}
@@ -343,6 +346,71 @@ const SP={
 };
 function pieceName(t,p){const s=SP[t];if(!p)return s.n;return t==='hiyoko'?'にわとり':'★'+s.pn}
 function pieceLongName(t,p){if(!p)return SP[t].n;return t==='hiyoko'?'にわとり':'パワーアップ'+SP[t].pn}
+
+// ---------- original piece illustrations (viewBox 0 0 100 100) ----------
+const OL='stroke="#4a3121" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"';
+const OLT=w=>`stroke="#4a3121" stroke-width="${w}" stroke-linejoin="round" stroke-linecap="round"`;
+const EYE=(x,y)=>`<circle cx="${x}" cy="${y}" r="3.8" fill="#3b2a1e"/><circle cx="${x+1.3}" cy="${y-1.3}" r="1.2" fill="#fff"/>`;
+const CHEEK=(x,y)=>`<ellipse cx="${x}" cy="${y}" rx="5" ry="3" fill="#f28c8c" opacity=".55"/>`;
+const MOUTH=(y)=>`<path d="M50,${y} Q46,${y+6} 42,${y+4} M50,${y} Q54,${y+6} 58,${y+4}" fill="none" ${OL}/>`;
+const ART={
+  lion:(()=>{let m='';for(let k=0;k<12;k++){const a=k*Math.PI/6;m+=`<circle cx="${(50+34*Math.cos(a)).toFixed(1)}" cy="${(52+34*Math.sin(a)).toFixed(1)}" r="13" fill="#e58a2e" ${OL}/>`}
+    return m+`<circle cx="50" cy="52" r="36" fill="#e58a2e"/>`+
+    `<circle cx="31" cy="33" r="8" fill="#ffd9a0" ${OL}/><circle cx="69" cy="33" r="8" fill="#ffd9a0" ${OL}/>`+
+    `<circle cx="50" cy="54" r="26" fill="#ffd9a0" ${OL}/>`+EYE(41,50)+EYE(59,50)+CHEEK(35,60)+CHEEK(65,60)+
+    `<path d="M45,58 Q50,55 55,58 Q50,64 45,58Z" fill="#7a3f22"/>`+MOUTH(62)})(),
+  kirin:`<path d="M40,31 L36,13 M60,31 L64,13" fill="none" stroke="#4a3121" stroke-width="4" stroke-linecap="round"/>`+
+    `<circle cx="36" cy="11" r="5.5" fill="#a0622d" ${OL}/><circle cx="64" cy="11" r="5.5" fill="#a0622d" ${OL}/>`+
+    `<ellipse cx="23" cy="40" rx="12" ry="6" transform="rotate(-25 23 40)" fill="#f4c95d" ${OL}/><ellipse cx="77" cy="40" rx="12" ry="6" transform="rotate(25 77 40)" fill="#f4c95d" ${OL}/>`+
+    `<ellipse cx="50" cy="50" rx="23" ry="25" fill="#f4c95d" ${OL}/>`+
+    `<ellipse cx="43" cy="34" rx="5" ry="4" fill="#c98a3a"/><ellipse cx="58" cy="32" rx="4" ry="3" fill="#c98a3a"/><ellipse cx="68" cy="47" rx="3" ry="4" fill="#c98a3a"/><ellipse cx="31" cy="50" rx="2.5" ry="3.5" fill="#c98a3a"/>`+
+    `<ellipse cx="50" cy="70" rx="18" ry="13" fill="#f8e2a6" ${OL}/>`+EYE(41,49)+EYE(59,49)+
+    `<circle cx="45" cy="68" r="1.9" fill="#7a4a24"/><circle cx="55" cy="68" r="1.9" fill="#7a4a24"/><path d="M44,75 Q50,79 56,75" fill="none" ${OL}/>`,
+  zou:`<circle cx="22" cy="47" r="20" fill="#a9b8e0" ${OL}/><circle cx="22" cy="47" r="11" fill="#f3c1cf"/>`+
+    `<circle cx="78" cy="47" r="20" fill="#a9b8e0" ${OL}/><circle cx="78" cy="47" r="11" fill="#f3c1cf"/>`+
+    `<circle cx="50" cy="46" r="26" fill="#bac7ea" ${OL}/>`+
+    `<path d="M50,60 Q50,80 61,86" fill="none" stroke="#4a3121" stroke-width="14" stroke-linecap="round"/><path d="M50,60 Q50,80 61,86" fill="none" stroke="#bac7ea" stroke-width="9" stroke-linecap="round"/>`+
+    `<path d="M46,70 L54,70 M47,76 L55,76" stroke="#8e9cc6" stroke-width="2" stroke-linecap="round"/>`+
+    EYE(40,44)+EYE(60,44)+CHEEK(34,54)+CHEEK(66,54),
+  hiyoko:`<path d="M45,21 Q46,9 51,16 Q55,8 57,21 Z" fill="#f7e14b" ${OL}/>`+
+    `<circle cx="50" cy="54" r="34" fill="#f7e14b" ${OL}/>`+
+    `<ellipse cx="17" cy="62" rx="7" ry="11" transform="rotate(25 17 62)" fill="#efcc2c" ${OL}/><ellipse cx="83" cy="62" rx="7" ry="11" transform="rotate(-25 83 62)" fill="#efcc2c" ${OL}/>`+
+    EYE(39,48)+EYE(61,48)+CHEEK(31,58)+CHEEK(69,58)+
+    `<path d="M44,56 L56,56 L50,64 Z" fill="#f39a2b" ${OL}/>`,
+  niwatori:`<circle cx="41" cy="20" r="7" fill="#e0463c" ${OL}/><circle cx="59" cy="20" r="7" fill="#e0463c" ${OL}/><circle cx="50" cy="15" r="8.5" fill="#e0463c" ${OL}/>`+
+    `<circle cx="50" cy="53" r="32" fill="#fffaf0" ${OL}/>`+
+    `<ellipse cx="19" cy="62" rx="7" ry="11" transform="rotate(25 19 62)" fill="#f1e9da" ${OL}/><ellipse cx="81" cy="62" rx="7" ry="11" transform="rotate(-25 81 62)" fill="#f1e9da" ${OL}/>`+
+    EYE(39,46)+EYE(61,46)+CHEEK(31,56)+CHEEK(69,56)+
+    `<ellipse cx="50" cy="69" rx="5" ry="7" fill="#e0463c" ${OL}/><path d="M43,54 L57,54 L50,63 Z" fill="#f39a2b" ${OL}/>`,
+  inu:`<circle cx="50" cy="52" r="29" fill="#eab77c" ${OL}/>`+
+    `<ellipse cx="60" cy="45" rx="9" ry="8" fill="#c98a4f"/>`+
+    `<ellipse cx="22" cy="50" rx="10" ry="19" transform="rotate(18 22 50)" fill="#9a6231" ${OL}/><ellipse cx="78" cy="50" rx="10" ry="19" transform="rotate(-18 78 50)" fill="#9a6231" ${OL}/>`+
+    `<ellipse cx="50" cy="65" rx="15" ry="11" fill="#fbe7cc" ${OL}/>`+EYE(40,47)+EYE(60,46)+
+    `<ellipse cx="50" cy="60" rx="5.5" ry="4" fill="#3b2a1e"/>`+MOUTH(64),
+  neko:`<path d="M25,42 L27,13 L47,28 Z" fill="#d8cfc4" ${OL}/><path d="M75,42 L73,13 L53,28 Z" fill="#d8cfc4" ${OL}/>`+
+    `<path d="M29,33 L30,20 L39,27 Z M71,33 L70,20 L61,27 Z" fill="#f3b3bf"/>`+
+    `<ellipse cx="50" cy="54" rx="30" ry="27" fill="#d8cfc4" ${OL}/>`+
+    `<path d="M44,31 L44,38 M50,29 L50,37 M56,31 L56,38" stroke="#9d9080" stroke-width="3" stroke-linecap="round"/>`+
+    EYE(40,50)+EYE(60,50)+CHEEK(34,60)+CHEEK(66,60)+
+    `<path d="M47,58 L53,58 L50,61.5 Z" fill="#f08a9a" ${OLT(1.5)}/>`+MOUTH(61)+
+    `<path d="M29,57 L14,54 M29,62 L14,64 M71,57 L86,54 M71,62 L86,64" stroke="#4a3121" stroke-width="1.8" stroke-linecap="round"/>`,
+  usagi:`<ellipse cx="38" cy="26" rx="8.5" ry="22" transform="rotate(-8 38 26)" fill="#fdfaf6" ${OL}/><ellipse cx="38" cy="28" rx="4" ry="14" transform="rotate(-8 38 28)" fill="#f6b9c8"/>`+
+    `<ellipse cx="62" cy="26" rx="8.5" ry="22" transform="rotate(8 62 26)" fill="#fdfaf6" ${OL}/><ellipse cx="62" cy="28" rx="4" ry="14" transform="rotate(8 62 28)" fill="#f6b9c8"/>`+
+    `<circle cx="50" cy="62" r="26" fill="#fdfaf6" ${OL}/>`+EYE(41,58)+EYE(59,58)+CHEEK(35,68)+CHEEK(65,68)+
+    `<ellipse cx="50" cy="66" rx="3.2" ry="2.5" fill="#f08a9a"/>`+MOUTH(68),
+  inoshishi:`<path d="M43,26 L46,16 L50,23 L54,16 L57,26 Z" fill="#5e3c22" ${OL}/>`+
+    `<path d="M22,36 L24,15 L41,27 Z" fill="#7d5230" ${OL}/><path d="M78,36 L76,15 L59,27 Z" fill="#7d5230" ${OL}/>`+
+    `<ellipse cx="50" cy="52" rx="31" ry="28" fill="#9b6b43" ${OL}/>`+
+    `<path d="M37,72 Q32,64 38,60 L41,66 Z M63,72 Q68,64 62,60 L59,66 Z" fill="#fffaf0" ${OLT(1.8)}/>`+
+    `<ellipse cx="50" cy="66" rx="15" ry="11" fill="#e7a98c" ${OL}/>`+
+    `<ellipse cx="45" cy="66" rx="2.4" ry="3.6" fill="#7a3f22"/><ellipse cx="55" cy="66" rx="2.4" ry="3.6" fill="#7a3f22"/>`+
+    EYE(39,46)+EYE(61,46),
+};
+const CROWN=`<path d="M37,6 L41,-6 L46,1 L50,-9 L54,1 L59,-6 L63,6 Z" fill="#f5c542" ${OLT(2)}/>`;
+function artSVG(t,p){
+  const key=t==='hiyoko'&&p?'niwatori':t.replace(/S$/,'');
+  return `<svg viewBox="0 0 100 100" aria-hidden="true">${ART[key]}${p&&t!=='hiyoko'?CROWN:''}</svg>`;
+}
 const HAND_ORDER=['kirin','kirinS','zou','zouS','inu','neko','usagi','inoshishi','hiyoko'];
 
 const MODES={
@@ -450,7 +518,7 @@ function tile(t,p,colorOwner,size,flip,modeKey){
     }
     el.appendChild(svg);
   }
-  const e=document.createElement('div');e.className='emo';e.textContent=(p&&SP[t].pe)||SP[t].e;el.appendChild(e);
+  const a=document.createElement('div');a.className='art';a.innerHTML=artSVG(t,p);el.appendChild(a);
   const n=document.createElement('div');n.className='nm';n.textContent=pieceName(t,p);el.appendChild(n);
   el.setAttribute('role','img');el.setAttribute('aria-label',pieceLongName(t,p));
   return el;
