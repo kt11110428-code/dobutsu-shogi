@@ -50,20 +50,20 @@ button:focus-visible{outline:3px solid var(--hi);outline-offset:2px}
 .tools button.warn{background:#8c3b2a;border-color:#c55}
 
 /* player sides */
-.side{display:flex;align-items:center;gap:12px;padding-block:6px;min-height:calc(var(--hs) + 16px)}
+.side{display:flex;align-items:center;gap:12px;padding-block:6px;height:calc(var(--hs) + 22px);flex:none}
 .side.top{transform:rotate(180deg)}
 #app.cpu .side.top{transform:none}
 .pill.think::after{content:"";display:inline-block;width:1.2em;text-align:left;animation:dots 1.2s steps(4) infinite}
 @keyframes dots{0%{content:""}25%{content:"・"}50%{content:"・・"}75%{content:"・・・"}}
 .modes .lbl{align-self:center;font-size:12px;font-weight:700;color:var(--muted);padding:0 4px 0 8px}
-.who{flex:none;display:flex;flex-direction:column;gap:3px;align-items:flex-start;width:128px}
-.pill{font-weight:900;font-size:15px;padding:6px 12px;border-radius:999px;background:rgba(255,255,255,.08);color:var(--muted);transition:background .2s,color .2s}
+.who{flex:none;display:flex;flex-direction:column;gap:3px;align-items:flex-start;width:190px}
+.pill{white-space:nowrap;font-weight:900;font-size:15px;padding:6px 12px;border-radius:999px;background:rgba(255,255,255,.08);color:var(--muted);transition:background .2s,color .2s}
 .side.p0 .pill.on{background:var(--p0);color:#fff;box-shadow:0 0 0 4px var(--p0soft)}
 .side.p1 .pill.on{background:var(--p1);color:#fff;box-shadow:0 0 0 4px var(--p1soft)}
-.msg{font-size:13px;font-weight:700;color:var(--hi);min-height:1.2em}
-.hand{flex:1;display:flex;gap:8px;flex-wrap:wrap;align-items:center;min-height:var(--hs)}
+.msg{font-size:13px;font-weight:700;color:var(--hi);height:1.3em;white-space:nowrap}
+.hand{flex:1;min-width:0;display:flex;gap:8px;flex-wrap:nowrap;align-items:center;height:100%;overflow-x:auto;overflow-y:hidden;padding-inline:4px}
 .hand .empty{color:rgba(255,255,255,.28);font-size:13px}
-.hslot{position:relative;border:0;padding:3px;background:transparent;border-radius:12px}
+.hslot{flex:none;position:relative;border:0;padding:3px;background:transparent;border-radius:12px}
 .hslot.sel{background:var(--hi)}
 .cnt{position:absolute;right:-4px;bottom:-4px;background:var(--cream);color:var(--ink);font-weight:900;font-size:13px;border-radius:999px;padding:1px 7px;font-variant-numeric:tabular-nums;box-shadow:0 1px 3px rgba(0,0,0,.3)}
 
