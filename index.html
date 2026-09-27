@@ -68,7 +68,7 @@ button:focus-visible{outline:3px solid var(--hi);outline-offset:2px}
 .cnt{position:absolute;right:-4px;bottom:-4px;background:var(--cream);color:var(--ink);font-weight:900;font-size:13px;border-radius:999px;padding:1px 7px;font-variant-numeric:tabular-nums;box-shadow:0 1px 3px rgba(0,0,0,.3)}
 
 /* board */
-.stage{flex:1;min-height:0;display:grid;place-items:center;position:relative}
+.stage{flex:1;min-height:0;display:grid;place-items:center;position:relative;overflow:hidden}
 .board{display:grid;grid-template-columns:repeat(var(--cols),var(--cell));grid-auto-rows:var(--cell);
   background:var(--wood);border:6px solid #8a6437;border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
 .cell{position:relative;border-right:1.5px solid var(--line);border-bottom:1.5px solid var(--line);display:grid;place-items:center;box-sizing:border-box}
@@ -528,15 +528,15 @@ function tile(t,p,colorOwner,size,flip,modeKey){
   el.setAttribute('role','img');el.setAttribute('aria-label',pieceLongName(t,p));
   return el;
 }
-// Measure the stage only when the window really changes size (rotation etc.), so that
-// Safari toolbars appearing/disappearing don't make the board jump while playing.
+// The board is sized from the stage (the space left between the two player rows).
+// The stage size doesn't depend on the board, so we re-measure only when the stage itself
+// changes size (window resize, rotation, toolbar wrapping) — watched by a ResizeObserver.
 let lay={w:0,h:0,mode:null,cell:0};
 function layout(){
-  const m=M(),w=window.innerWidth,h=window.innerHeight;
-  if(lay.cell&&lay.mode===mode&&Math.abs(w-lay.w)<2&&Math.abs(h-lay.h)<120){
+  const m=M(),st=$('stage').getBoundingClientRect(),w=Math.round(st.width),h=Math.round(st.height);
+  if(lay.cell&&lay.mode===mode&&lay.w===w&&lay.h===h){
     document.documentElement.style.setProperty('--cell',lay.cell+'px');return lay.cell}
-  const st=$('stage').getBoundingClientRect();
-  const cell=Math.max(28,Math.floor(Math.min((st.width-12)/m.cols,(st.height-16)/m.rows,190)));
+  const cell=Math.max(12,Math.floor(Math.min((w-12)/m.cols,(h-16)/m.rows,190)));
   lay={w,h,mode,cell};
   document.documentElement.style.setProperty('--cell',cell+'px');
   return cell;
@@ -758,7 +758,8 @@ document.addEventListener('dblclick',e=>e.preventDefault(),{passive:false});
 let rt;window.addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(render,80)});
 loadMode();render();maybeCpu();
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{lay.cell=0;render()});
-window.addEventListener('orientationchange',()=>{lay.cell=0;hsCache.v=0;setTimeout(render,300)});
+window.addEventListener('orientationchange',()=>{hsCache.v=0;setTimeout(render,300)});
+if(window.ResizeObserver){let lastW=0,lastH=0;new ResizeObserver(es=>{const r=es[0].contentRect;const w=Math.round(r.width),h=Math.round(r.height);if(w===lastW&&h===lastH)return;lastW=w;lastH=h;if(w!==lay.w||h!==lay.h)render()}).observe($('stage'))}
 })();
 </script>
 
