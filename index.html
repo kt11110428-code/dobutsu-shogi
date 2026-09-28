@@ -478,13 +478,12 @@ const IMG_KEYS={
   goro:[['lion',0],['inu',0],['neko',0],['neko',1],['hiyoko',0],['hiyoko',1]],
   mori:[['lion',0],['kirin',0],['kirin',1],['zou',0],['zou',1],['inu',0],['neko',0],['neko',1],['usagi',0],['usagi',1],['inoshishi',0],['inoshishi',1],['hiyoko',0],['hiyoko',1]],
 };
-const PLAYS=[['human','ふたりで','たいせん'],['cpu','コンピュータ','たいせん'],['tsume','つめしょうぎ','もんだい'],['lesson','おけいこ','ていせき']];
+const PLAYS=[['human','ふたりで','たいせん'],['cpu','コンピュータ','たいせん'],['tsume','つめしょうぎ','もんだい'],['lesson','おけいこ','']];
 // search strength per level & board (index 0 = weakest)
 const LEVELS=[
-  {name:'よわい',cfg:{doko:{depth:1,time:300,noise:900},goro:{depth:1,time:300,noise:900},mori:{depth:1,time:400,noise:900}}},
-  {name:'ふつう',cfg:{doko:{depth:1,time:400,noise:260},goro:{depth:1,time:400,noise:300},mori:{depth:1,time:500,noise:300}}},
-  {name:'つよい',cfg:{doko:{depth:3,time:1200,noise:40},goro:{depth:2,time:1500,noise:40},mori:{depth:2,time:2000,noise:40}}},
-  {name:'さいきょう',cfg:{doko:{depth:8,time:2500,noise:0},goro:{depth:4,time:3000,noise:0},mori:{depth:3,time:4000,noise:0}}},
+  {name:'よわい',cfg:{doko:{depth:1,time:400,noise:260},goro:{depth:1,time:400,noise:300},mori:{depth:1,time:500,noise:300}}},
+  {name:'ふつう',cfg:{doko:{depth:3,time:1200,noise:40},goro:{depth:2,time:1500,noise:40},mori:{depth:2,time:2000,noise:40}}},
+  {name:'つよい',cfg:{doko:{depth:8,time:2500,noise:0},goro:{depth:4,time:3000,noise:0},mori:{depth:3,time:4000,noise:0}}},
 ];
 // verified puzzles: b = [square index, piece, owner, promoted], h = attacker's hand, n = moves (1 or 3)
 const TSUME={"doko":[{"n":1,"b":[[0,"lion",1,0],[6,"hiyoko",0,1],[7,"zouS",0,0],[8,"hiyoko",1,0]],"h":{}},{"n":1,"b":[[0,"lion",1,0],[4,"hiyoko",1,0],[6,"zouS",0,0],[7,"hiyoko",0,1]],"h":{"kirinS":1}},{"n":1,"b":[[2,"lion",1,0],[4,"kirinS",0,0],[8,"kirinS",0,0]],"h":{}},{"n":1,"b":[[0,"lion",1,0],[1,"zouS",0,0],[7,"hiyoko",0,1]],"h":{"kirinS":1}},{"n":1,"b":[[1,"lion",1,0],[7,"kirinS",0,0],[8,"hiyoko",0,1]],"h":{"hiyoko":1}},{"n":3,"b":[[1,"lion",1,0],[2,"zouS",0,0],[4,"zouS",1,0],[5,"kirinS",0,0],[8,"hiyoko",1,0]],"h":{"kirinS":1}},{"n":3,"b":[[0,"zouS",1,0],[1,"lion",1,0],[5,"hiyoko",1,0],[7,"kirinS",0,0],[8,"hiyoko",0,1]],"h":{"kirinS":1}},{"n":3,"b":[[1,"lion",1,0],[6,"zouS",0,0],[7,"kirinS",0,0],[8,"hiyoko",1,0]],"h":{"kirinS":1}}],"goro":[{"n":1,"b":[[0,"neko",0,0],[5,"lion",1,0],[7,"neko",1,0],[10,"inu",1,0],[22,"hiyoko",0,0]],"h":{"neko":1,"inu":1}},{"n":1,"b":[[4,"lion",1,0],[7,"neko",1,0],[12,"inu",0,0],[16,"inu",0,0]],"h":{"inu":1}},{"n":1,"b":[[1,"hiyoko",0,1],[4,"lion",1,0],[7,"neko",0,0],[9,"hiyoko",1,0]],"h":{"inu":1}},{"n":1,"b":[[2,"lion",1,0],[13,"neko",0,1],[17,"inu",0,0]],"h":{"inu":1,"hiyoko":1}},{"n":1,"b":[[7,"hiyoko",0,0],[9,"lion",1,0],[12,"inu",0,0],[14,"inu",1,0]],"h":{"inu":1}},{"n":1,"b":[[0,"lion",1,0],[10,"inu",1,0],[11,"neko",0,0],[12,"hiyoko",1,0],[17,"hiyoko",0,0]],"h":{"neko":1}},{"n":3,"b":[[0,"inu",1,0],[6,"lion",1,0],[16,"neko",0,0]],"h":{"inu":1,"neko":1}},{"n":3,"b":[[7,"neko",1,0],[9,"lion",1,0],[16,"inu",0,0],[18,"neko",0,1]],"h":{"inu":2}},{"n":3,"b":[[7,"lion",1,0],[17,"neko",0,0]],"h":{"neko":1,"inu":1}},{"n":3,"b":[[7,"lion",1,0],[10,"inu",1,0],[17,"hiyoko",0,0],[18,"inu",0,0]],"h":{"inu":1,"neko":1}}],"mori":[{"n":1,"b":[[0,"lion",1,0],[9,"inu",1,0],[38,"kirin",0,0]],"h":{"kirin":1}},{"n":1,"b":[[3,"lion",1,0],[16,"inu",0,0],[19,"neko",0,0],[22,"neko",0,0]],"h":{"neko":1}},{"n":1,"b":[[7,"lion",1,0],[13,"inu",0,0],[14,"kirin",0,0],[44,"zou",0,0]],"h":{"inu":1,"zou":1}},{"n":1,"b":[[6,"hiyoko",1,0],[8,"lion",1,0],[13,"zou",0,0],[15,"kirin",0,0],[23,"kirin",0,0],[24,"neko",1,0],[26,"usagi",1,0]],"h":{"zou":1,"inu":1}},{"n":1,"b":[[7,"usagi",1,0],[8,"lion",1,0],[24,"usagi",1,0],[41,"zou",0,0]],"h":{"zou":1,"kirin":1}},{"n":1,"b":[[2,"lion",1,0],[4,"kirin",1,0],[21,"inu",0,0]],"h":{"zou":1,"inu":1}},{"n":1,"b":[[3,"zou",0,0],[4,"lion",1,0],[35,"inu",0,0]],"h":{"inu":1,"inoshishi":1}},{"n":3,"b":[[3,"neko",0,0],[6,"lion",1,0],[24,"neko",1,0],[25,"kirin",0,0],[26,"hiyoko",1,0]],"h":{"inu":1,"kirin":1}},{"n":3,"b":[[1,"lion",1,0],[2,"usagi",1,0],[10,"inoshishi",1,0],[11,"inoshishi",1,0],[12,"hiyoko",0,1],[20,"neko",0,0],[32,"hiyoko",0,0]],"h":{}},{"n":3,"b":[[3,"lion",1,0],[18,"usagi",0,0],[24,"hiyoko",0,0],[30,"usagi",0,0]],"h":{"inoshishi":1,"inu":1}},{"n":3,"b":[[11,"zou",0,0],[12,"lion",1,0],[22,"usagi",0,0],[39,"zou",0,1]],"h":{"kirin":1}},{"n":3,"b":[[10,"lion",1,0],[14,"inu",0,0],[20,"kirin",0,0]],"h":{"inu":1,"inoshishi":1}}]};
@@ -559,9 +558,10 @@ const store={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.
   del(k){try{localStorage.removeItem(k)}catch(e){}}};
 let settings=Object.assign({hints:true,play:'human',level:0,strict:{doko:false,goro:false,mori:true}},store.get('ds:settings',{}));
 if(settings.opp){ // settings from the version with separate よわい/ふつう/つよい buttons
-  const old={human:['human',0],weak:['cpu',1],normal:['cpu',2],strong:['cpu',3]}[settings.opp]||['human',0];
-  settings.play=old[0];settings.level=old[1];delete settings.opp;
+  const old={human:['human',0],weak:['cpu',0],normal:['cpu',1],strong:['cpu',2]}[settings.opp]||['human',0];
+  settings.play=old[0];settings.level=old[1];delete settings.opp;settings.lv3=true;
 }
+if(!settings.lv3){settings.level=Math.max(0,(settings.level||0)-1);settings.lv3=true} // from the short-lived 4-level version
 if(!PLAYS.some(p=>p[0]===settings.play))settings.play='human';
 if(!LEVELS[settings.level])settings.level=0;
 const saveSettings=()=>store.set('ds:settings',settings);
@@ -781,7 +781,7 @@ function render(){
   $('app').classList.toggle('cpu',face);
   segButtons($('modes'),Object.keys(MODES).map(k=>[k,`${MODES[k].title}<small>${MODES[k].size}</small>`]),mode,k=>{
     if(k===mode)return;save();mode=k;load();save();render();maybeCpu()});
-  segButtons($('plays'),PLAYS.map(([k,l,s])=>[k,`${l}<small>${s}</small>`]),play(),k=>{
+  segButtons($('plays'),PLAYS.map(([k,l,s])=>[k,s?`${l}<small>${s}</small>`:l]),play(),k=>{
     if(k===play())return;save();settings.play=k;saveSettings();load();save();render();maybeCpu()});
   $('levels').hidden=!cpuOn();
   segButtons($('levels'),LEVELS.map((L,i)=>[String(i),`${L.name}<small>つよさ${i+1}</small>`]),String(settings.level),k=>{
@@ -995,7 +995,7 @@ function openSettings(){
   const hc=document.createElement('h3');hc.textContent='あそびかた';sh.appendChild(hc);
   const ul0=document.createElement('ul');ul0.className='rules';
   for(const t of ['ふたりで：iPadをはさんで向かい合って対戦します。',
-    'コンピュータ：上側（オレンジ）をコンピュータが指します。強さは よわい・ふつう・つよい・さいきょう の4つ。「よわい」は ほとんど でたらめに指すので、駒の動かし方を覚えたばかりの子ども向けです。「まった」はコンピュータの手とあなたの手をまとめて戻します。',
+    'コンピュータ：上側（オレンジ）をコンピュータが指します。強さは よわい・ふつう・つよい の3つ。「よわい」は時々わざと間違えるので、はじめての子どもにおすすめです。「まった」はコンピュータの手とあなたの手をまとめて戻します。',
     'つめしょうぎ：王手を続けてライオンを詰ませる問題です（1手詰・3手詰）。すべての問題は、答えがあることをプログラムで確かめてあります。解いた問題には ✓ が付きます。',
     'おけいこ：説明を読みながら駒を動かして、基本の動きや、よく使われる指し方（おおきな森では 棒銀・舟囲い・美濃囲い）を覚えます。'])
     {const li=document.createElement('li');li.textContent=t;ul0.appendChild(li)}
