@@ -107,6 +107,27 @@ button:focus-visible{outline:3px solid var(--hi);outline-offset:2px}
 @keyframes popf{0%{transform:rotate(180deg) scale(1.18)}100%{transform:rotate(180deg) scale(1)}}
 @media (prefers-reduced-motion:reduce){.pc.just,.pc.flip.just{animation:none}}
 
+/* coach panel (つめしょうぎ・おけいこ) — fixed height so the board never jumps */
+.coach{flex:none;background:var(--cream);color:var(--ink);border-radius:14px;padding:8px 12px;margin-block:4px;display:flex;flex-direction:column;gap:4px}
+.crow{display:flex;gap:10px;align-items:center;min-width:0}
+.ctitle{font-weight:900;font-size:16px;white-space:nowrap}
+.chips{display:flex;gap:6px;overflow-x:auto;flex:1;min-width:0;padding-block:2px}
+.chips button{flex:none;border:0;border-radius:999px;padding:6px 11px;font-weight:700;font-size:13px;background:#eadbb8;color:var(--ink);white-space:nowrap}
+.chips button.cur{background:var(--p0);color:#fff}
+.chips button.ok::after{content:" ✓"}
+.ctext{font-size:15px;font-weight:700;line-height:1.45;height:4.4em;overflow-y:auto}
+.ctext small{display:block;font-size:12px;font-weight:500;color:#7a5a3a;margin-top:2px}
+.ctext .warn{color:#c0392b}
+.ctext .todo{color:var(--p0)}
+.cbtns{flex:none;display:flex;gap:6px}
+.cbtns button{flex:none;border:0;border-radius:10px;padding:8px 12px;font-weight:900;font-size:14px;background:var(--forest2);color:var(--cream)}
+.cbtns button.go{background:var(--p0);color:#fff}
+.cbtns button:disabled{opacity:.35}
+.cell.hint{box-shadow:inset 0 0 0 4px #ff6b5a;animation:hintp 1.1s ease-in-out infinite}
+@keyframes hintp{50%{box-shadow:inset 0 0 0 4px rgba(255,107,90,.25)}}
+.hslot.hint{background:#ff6b5a}
+@media (prefers-reduced-motion:reduce){.cell.hint{animation:none}}
+
 /* overlays */
 .ov{position:absolute;inset:0;display:grid;place-items:center;background:rgba(20,32,25,.62);z-index:10;border-radius:12px}
 .card{background:var(--cream);color:var(--ink);border-radius:18px;padding:20px 24px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.4);max-width:calc(100% - 32px);box-sizing:border-box}
@@ -150,12 +171,17 @@ button:focus-visible{outline:3px solid var(--hi);outline-offset:2px}
   <div class="bar">
     <div class="brand">どうぶつしょうぎ盤</div>
     <div class="modes" id="modes"></div>
-    <div class="modes" id="opps"></div>
+    <div class="modes" id="plays"></div>
+    <div class="modes" id="levels" hidden></div>
     <div class="tools">
       <button id="undo" type="button">↶ まった</button>
       <button id="reset" type="button">はじめから</button>
       <button id="gear" type="button">せってい</button>
     </div>
+  </div>
+  <div class="coach" id="coach" hidden>
+    <div class="crow"><div class="ctitle" id="ctitle"></div><div class="chips" id="chips"></div><div class="cbtns" id="cbtns"></div></div>
+    <div class="ctext" id="ctext"></div>
   </div>
   <div class="side top p1" id="side1"><div class="who"><div class="pill" id="pill1">オレンジ</div><div class="msg" id="msg1"></div></div><div class="hand" id="hand1"></div></div>
   <div class="stage" id="stage"><div class="board" id="board"></div></div>
@@ -331,7 +357,25 @@ function search(S,M,opts){
   const m=noisy[0].m;
   return {from:m.from,to:m.to,drop:m.drop,promote:!!m.promote};
 }
-return {moveSet,rowOf,colOf,targets,attacked,findLion,inCheck,distToEnd,promoChoices,apply,dropOK,allMoves,legalMoves,evaluate,search};
+
+// ---------- tsume (mate) solver: attacker = side to move, always strict rules ----------
+function checkMoves(S,M){const d=1-S.turn;return legalMoves(S,M,true).filter(m=>inCheck(apply(S,M,m),M,d))}
+function tryEscape(S3,M,def){if(!M.try)return false;const L=findLion(S3,def);return L>=0&&distToEnd(M,def,rowOf(M,L))===0&&!attacked(S3,M,L,1-def)}
+// does attacker move m force mate within n attacker moves (n=1: mate now)?
+function moveMates(S,M,m,n){
+  const S2=apply(S,M,m);if(!inCheck(S2,M,S2.turn))return false;
+  const ds=legalMoves(S2,M,true);if(!ds.length)return true;if(n<=1)return false;
+  for(const d of ds){const S3=apply(S2,M,d);if(tryEscape(S3,M,S2.turn))return false;if(!matesIn(S3,M,n-1))return false}
+  return true;
+}
+function matesIn(S,M,n){for(const m of checkMoves(S,M))if(moveMates(S,M,m,n))return true;return false}
+// defender reply that holds out longest (S2 = defender to move, attacker has n moves left)
+function bestDefense(S2,M,n){
+  const ds=legalMoves(S2,M,true);let best=null,bestK=-1;
+  for(const d of ds){const S3=apply(S2,M,d);let k=1;while(k<n&&!matesIn(S3,M,k))k++;if(k>bestK){bestK=k;best=d}}
+  return best;
+}
+return {moveSet,rowOf,colOf,targets,attacked,findLion,inCheck,distToEnd,promoChoices,apply,dropOK,allMoves,legalMoves,evaluate,search,checkMoves,moveMates,matesIn,bestDefense};
 }
 
 // ================= app =================
@@ -434,20 +478,94 @@ const IMG_KEYS={
   goro:[['lion',0],['inu',0],['neko',0],['neko',1],['hiyoko',0],['hiyoko',1]],
   mori:[['lion',0],['kirin',0],['kirin',1],['zou',0],['zou',1],['inu',0],['neko',0],['neko',1],['usagi',0],['usagi',1],['inoshishi',0],['inoshishi',1],['hiyoko',0],['hiyoko',1]],
 };
-const OPPS={human:{label:'ふたりで'},weak:{label:'よわい'},normal:{label:'ふつう'},strong:{label:'つよい'}};
-// search strength per level & board
-const LEVEL={
-  weak:{doko:{depth:1,time:400,noise:260},goro:{depth:1,time:400,noise:300},mori:{depth:1,time:500,noise:300}},
-  normal:{doko:{depth:3,time:1200,noise:40},goro:{depth:2,time:1500,noise:40},mori:{depth:2,time:2000,noise:40}},
-  strong:{doko:{depth:8,time:2500,noise:0},goro:{depth:4,time:3000,noise:0},mori:{depth:3,time:4000,noise:0}},
+const PLAYS=[['human','ふたりで','たいせん'],['cpu','コンピュータ','たいせん'],['tsume','つめしょうぎ','もんだい'],['lesson','おけいこ','ていせき']];
+// search strength per level & board (index 0 = weakest)
+const LEVELS=[
+  {name:'よわい',cfg:{doko:{depth:1,time:300,noise:900},goro:{depth:1,time:300,noise:900},mori:{depth:1,time:400,noise:900}}},
+  {name:'ふつう',cfg:{doko:{depth:1,time:400,noise:260},goro:{depth:1,time:400,noise:300},mori:{depth:1,time:500,noise:300}}},
+  {name:'つよい',cfg:{doko:{depth:3,time:1200,noise:40},goro:{depth:2,time:1500,noise:40},mori:{depth:2,time:2000,noise:40}}},
+  {name:'さいきょう',cfg:{doko:{depth:8,time:2500,noise:0},goro:{depth:4,time:3000,noise:0},mori:{depth:3,time:4000,noise:0}}},
+];
+// verified puzzles: b = [square index, piece, owner, promoted], h = attacker's hand, n = moves (1 or 3)
+const TSUME={"doko":[{"n":1,"b":[[0,"lion",1,0],[6,"hiyoko",0,1],[7,"zouS",0,0],[8,"hiyoko",1,0]],"h":{}},{"n":1,"b":[[0,"lion",1,0],[4,"hiyoko",1,0],[6,"zouS",0,0],[7,"hiyoko",0,1]],"h":{"kirinS":1}},{"n":1,"b":[[2,"lion",1,0],[4,"kirinS",0,0],[8,"kirinS",0,0]],"h":{}},{"n":1,"b":[[0,"lion",1,0],[1,"zouS",0,0],[7,"hiyoko",0,1]],"h":{"kirinS":1}},{"n":1,"b":[[1,"lion",1,0],[7,"kirinS",0,0],[8,"hiyoko",0,1]],"h":{"hiyoko":1}},{"n":3,"b":[[1,"lion",1,0],[2,"zouS",0,0],[4,"zouS",1,0],[5,"kirinS",0,0],[8,"hiyoko",1,0]],"h":{"kirinS":1}},{"n":3,"b":[[0,"zouS",1,0],[1,"lion",1,0],[5,"hiyoko",1,0],[7,"kirinS",0,0],[8,"hiyoko",0,1]],"h":{"kirinS":1}},{"n":3,"b":[[1,"lion",1,0],[6,"zouS",0,0],[7,"kirinS",0,0],[8,"hiyoko",1,0]],"h":{"kirinS":1}}],"goro":[{"n":1,"b":[[0,"neko",0,0],[5,"lion",1,0],[7,"neko",1,0],[10,"inu",1,0],[22,"hiyoko",0,0]],"h":{"neko":1,"inu":1}},{"n":1,"b":[[4,"lion",1,0],[7,"neko",1,0],[12,"inu",0,0],[16,"inu",0,0]],"h":{"inu":1}},{"n":1,"b":[[1,"hiyoko",0,1],[4,"lion",1,0],[7,"neko",0,0],[9,"hiyoko",1,0]],"h":{"inu":1}},{"n":1,"b":[[2,"lion",1,0],[13,"neko",0,1],[17,"inu",0,0]],"h":{"inu":1,"hiyoko":1}},{"n":1,"b":[[7,"hiyoko",0,0],[9,"lion",1,0],[12,"inu",0,0],[14,"inu",1,0]],"h":{"inu":1}},{"n":1,"b":[[0,"lion",1,0],[10,"inu",1,0],[11,"neko",0,0],[12,"hiyoko",1,0],[17,"hiyoko",0,0]],"h":{"neko":1}},{"n":3,"b":[[0,"inu",1,0],[6,"lion",1,0],[16,"neko",0,0]],"h":{"inu":1,"neko":1}},{"n":3,"b":[[7,"neko",1,0],[9,"lion",1,0],[16,"inu",0,0],[18,"neko",0,1]],"h":{"inu":2}},{"n":3,"b":[[7,"lion",1,0],[17,"neko",0,0]],"h":{"neko":1,"inu":1}},{"n":3,"b":[[7,"lion",1,0],[10,"inu",1,0],[17,"hiyoko",0,0],[18,"inu",0,0]],"h":{"inu":1,"neko":1}}],"mori":[{"n":1,"b":[[0,"lion",1,0],[9,"inu",1,0],[38,"kirin",0,0]],"h":{"kirin":1}},{"n":1,"b":[[3,"lion",1,0],[16,"inu",0,0],[19,"neko",0,0],[22,"neko",0,0]],"h":{"neko":1}},{"n":1,"b":[[7,"lion",1,0],[13,"inu",0,0],[14,"kirin",0,0],[44,"zou",0,0]],"h":{"inu":1,"zou":1}},{"n":1,"b":[[6,"hiyoko",1,0],[8,"lion",1,0],[13,"zou",0,0],[15,"kirin",0,0],[23,"kirin",0,0],[24,"neko",1,0],[26,"usagi",1,0]],"h":{"zou":1,"inu":1}},{"n":1,"b":[[7,"usagi",1,0],[8,"lion",1,0],[24,"usagi",1,0],[41,"zou",0,0]],"h":{"zou":1,"kirin":1}},{"n":1,"b":[[2,"lion",1,0],[4,"kirin",1,0],[21,"inu",0,0]],"h":{"zou":1,"inu":1}},{"n":1,"b":[[3,"zou",0,0],[4,"lion",1,0],[35,"inu",0,0]],"h":{"inu":1,"inoshishi":1}},{"n":3,"b":[[3,"neko",0,0],[6,"lion",1,0],[24,"neko",1,0],[25,"kirin",0,0],[26,"hiyoko",1,0]],"h":{"inu":1,"kirin":1}},{"n":3,"b":[[1,"lion",1,0],[2,"usagi",1,0],[10,"inoshishi",1,0],[11,"inoshishi",1,0],[12,"hiyoko",0,1],[20,"neko",0,0],[32,"hiyoko",0,0]],"h":{}},{"n":3,"b":[[3,"lion",1,0],[18,"usagi",0,0],[24,"hiyoko",0,0],[30,"usagi",0,0]],"h":{"inoshishi":1,"inu":1}},{"n":3,"b":[[11,"zou",0,0],[12,"lion",1,0],[22,"usagi",0,0],[39,"zou",0,1]],"h":{"kirin":1}},{"n":3,"b":[[10,"lion",1,0],[14,"inu",0,0],[20,"kirin",0,0]],"h":{"inu":1,"inoshishi":1}}]};
+// lessons: squares are A1..(letter = column from the left, number = row from the top) on 3×4 / 5×6,
+// and shogi notation (file 1-9 from the right, rank 1-9 from the top) on 9×9.
+// mv: "FROM-TO" ("+" = power up), "piece*TO" = drop, "piece*?" = drop anywhere; q = the child makes this move
+const LESSONS={
+  doko:[
+    {title:'ひよこの とりあい',steps:[
+      {t:'どうぶつしょうぎは、まん中の ひよこどうしが むかいあって はじまります。ひよこは まえに 1マスだけ すすめます。',hl:['B3','B2']},
+      {t:'みどりの ひよこで、オレンジの ひよこを とってみよう！',mv:'B3-B2',q:true,done:'とれたね！ とった駒は「もちごま」になって、じぶんの ばんに あいている マスへ おけます。'},
+      {t:'オレンジは ぞうで とりかえしました。ぞうは ななめに 1マス うごけます。',mv:'C1-B2'},
+      {t:'これで おたがいに ひよこを 1まいずつ もっています。とったり とられたりを よく見て すすめよう。'}]},
+    {title:'トライで かつ',setup:{b:{C2:'lion0',A4:'lion1',A1:'kirinS1'}},steps:[
+      {t:'ライオンが あいての いちばん おくの だんに 入って、つぎに とられなければ「トライ」で かちです。',hl:['A1','B1','C1']},
+      {t:'でも B1 には、きりんが 1マスで とどきます。入ると とられてしまいます。',hl:['A1','B1']},
+      {t:'とられない マスに ライオンを すすめて、トライしよう！',mv:'C2-C1',q:true,done:'トライせいこう！ あいての駒が とどかない マスを えらぶのが コツです。'}]},
+    {title:'もちごまを うつ',setup:{b:{B1:'lion1',B3:'kirinS0',B4:'lion0'},h:[{hiyoko:1},{}]},steps:[
+      {t:'もちごまは、じぶんの ばんに 1手つかって、盤の あいている マスに おけます。'},
+      {t:'もっている ひよこを B2 に おいて、ライオンを ねらってみよう。',mv:'hiyoko*B2',q:true,done:'ひよこは まえに 1マス なので、ライオンを ねらっています。ライオンが ひよこを とると、うしろの きりんに とられてしまいます。'},
+      {t:'このように、もちごまは あいての ライオンの ちかくに うつと つよい ぶきに なります。'}]},
+  ],
+  goro:[
+    {title:'ねこ と いぬ',steps:[
+      {t:'ごろごろどうぶつしょうぎには、ねこ と いぬ が います。',hl:['A6','B6','D6','E6']},
+      {t:'ねこは まえ3つと、うしろの ななめ2つに 1マス。よこ と まうしろには いけません。',hl:['A6','E6']},
+      {t:'いぬは まえ3つと、よこ2つ、まうしろに 1マス。うしろの ななめには いけません。',hl:['B6','D6']},
+      {t:'右はしの ねこを、ななめまえに 1マス すすめてみよう。',mv:'E6-D5',q:true,done:'じょうず！ ねこは ななめに すすめるので、せめるのが とくいです。'},
+      {t:'いぬは よこにも うごけるので、ライオンの そばで まもるのが とくいです。'}]},
+    {title:'パワーアップ',setup:{b:{A1:'lion1',C3:'neko0',C6:'lion0'}},steps:[
+      {t:'あいての じんち（色のついた おくの 2だん）に 入るときや、そこから 出るときに、パワーアップ できます。',hl:['A1','B1','C1','D1','E1','A2','B2','C2','D2','E2']},
+      {t:'ねこを C2 に すすめて、パワーアップさせよう！（「パワーアップ！」を えらんでね）',mv:'C3-C2+',q:true,done:'パワーアップした ねこは、いぬと おなじ うごきに なります。'},
+      {t:'ひよこも パワーアップすると にわとりに なって、いぬと おなじ うごきが できます。'}]},
+    {title:'にひよこは はんそく',setup:{b:{C1:'lion1',B4:'hiyoko0',C6:'lion0'},h:[{hiyoko:1},{}]},steps:[
+      {t:'おなじ たての れつに、じぶんの ひよこを 2まい おくことは できません。これを「にひよこ」と いいます。',hl:['B1','B2','B3','B4','B5','B6']},
+      {t:'もっている ひよこを どこかに おいてみよう。B の れつには おけないよ。',mv:'hiyoko*?',q:true,done:'そのとおり！ いちばん おくの だんにも、ひよこは おけません（うごけなくなるから）。'},
+      {t:'ひよこを うって、すぐに ライオンが にげられなくなる（つみ）のも はんそくです。これを「うちひよこづめ」と いいます。'}]},
+  ],
+  mori:[
+    {title:'ぼうぎん（棒銀）',steps:[
+      {t:'おおきな森は、ほんものの 将棋と おなじ ルールです。有名な せめかた「棒銀（ぼうぎん）」を おぼえよう。ねこが 将棋の「銀」です。',hl:['28','39']},
+      {t:'きりん（飛車）の まえの ひよこを 1マス すすめよう。',mv:'27-26',q:true,done:'いいね！ きりんの まえを あけて、ここから せめていきます。'},
+      {t:'ひよこを もう1マス すすめます。',mv:'26-25'},
+      {t:'つぎは ねこ。3九の ねこを 3八へ すすめよう。',mv:'39-38',q:true,done:'ねこが せめる じゅんびを はじめました。'},
+      {t:'ねこを 2七へ。',mv:'38-27'},
+      {t:'さらに 2六へ。ねこが きりんの まえを まっすぐ すすんでいきます。',mv:'27-26'},
+      {t:'1五へ。ここから ひよこ・ねこ・きりんの 3にんで、2の れつを せめます。',mv:'26-15'},
+      {t:'銀（ねこ）を ぼうのように まっすぐ すすめて せめるので「棒銀」と いいます。じっさいは あいても うごくので、あいての 駒を よく見ながら すすめよう。'}]},
+    {title:'ふなかこい（舟囲い）',steps:[
+      {t:'「かこい」は ライオンを まもる おしろ です。まずは かんたんな「舟囲い（ふなかこい）」を つくってみよう。'},
+      {t:'ぞう（角）の まえの ひよこを すすめて、ぞうの みちを あけます。',mv:'77-76'},
+      {t:'ライオンを 6八へ うごかそう。',mv:'59-68',q:true,done:'ライオンが ひだりへ ひっこしを はじめました。'},
+      {t:'さらに 7八へ。',mv:'68-78'},
+      {t:'右の いぬを 5八へ うごかそう。',mv:'49-58',q:true,done:'できあがり！ ライオンを いぬと ねこで かためた「舟囲い」です。',hl:['78','69','58','79']},
+      {t:'かこいを つくってから せめると、あいてに せめられても ライオンが すぐには つかまりません。'}]},
+    {title:'みのがこい（美濃囲い）',steps:[
+      {t:'こんどは、きりん（飛車）を ひだりに まわす「ふりびしゃ」で よく つかわれる「美濃囲い（みのがこい）」を つくろう。'},
+      {t:'ぞうの まえの ひよこを すすめます。',mv:'77-76'},
+      {t:'となりの ひよこも すすめて、ぞうの みちを とじます。',mv:'67-66'},
+      {t:'きりんを 6八へ まわそう。これを「四間飛車（しけんびしゃ）」と いいます。',mv:'28-68',q:true,done:'きりんが ひだりへ うつりました。'},
+      {t:'ライオンは みぎへ ひっこします。まず 4八へ。',mv:'59-48'},
+      {t:'3八へ。',mv:'48-38'},
+      {t:'2八へ。',mv:'38-28'},
+      {t:'ねこを 3八へ あげます。',mv:'39-38'},
+      {t:'ひだりの いぬを 5八へ うごかそう。',mv:'69-58',q:true,done:'できあがり！ これが「美濃囲い」。よこから せめられても つよい かこいです。',hl:['28','38','49','58']}]},
+  ],
 };
 
 // ---------- storage ----------
 const store={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},
   set(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){return false}},
   del(k){try{localStorage.removeItem(k)}catch(e){}}};
-let settings=Object.assign({hints:true,opp:'human',strict:{doko:false,goro:false,mori:true}},store.get('ds:settings',{}));
-if(!OPPS[settings.opp])settings.opp='human';
+let settings=Object.assign({hints:true,play:'human',level:0,strict:{doko:false,goro:false,mori:true}},store.get('ds:settings',{}));
+if(settings.opp){ // settings from the version with separate よわい/ふつう/つよい buttons
+  const old={human:['human',0],weak:['cpu',1],normal:['cpu',2],strong:['cpu',3]}[settings.opp]||['human',0];
+  settings.play=old[0];settings.level=old[1];delete settings.opp;
+}
+if(!PLAYS.some(p=>p[0]===settings.play))settings.play='human';
+if(!LEVELS[settings.level])settings.level=0;
+const saveSettings=()=>store.set('ds:settings',settings);
+saveSettings();
 const imgCache={};
 function imgKey(mode,t,p){return 'ds:img:'+mode+':'+t+(p?'+':'')}
 function getImg(mode,t,p){const k=imgKey(mode,t,p);if(!(k in imgCache))imgCache[k]=store.get(k,null);return imgCache[k]}
@@ -460,15 +578,41 @@ function newGame(mk){
   }
   return {board,hands:[{},{}],turn:0,winner:null,winText:'',last:null,pending:true};
 }
+function sqIndex(mk,s){const m=MODES[mk];if(mk==='mori')return (+s[1]-1)*9+(9-(+s[0]));return (+s.slice(1)-1)*m.cols+(s.charCodeAt(0)-65)}
 
 // ---------- app state ----------
 let mode=store.get('ds:mode','doko'); if(!MODES[mode])mode='doko';
 let S,hist,sel=null,moveMap=new Map(),promo=null,justTo=null,resetArm=0;
 let thinking=false,thinkToken=0,startMsg='';
-function loadMode(){const g=store.get('ds:game:'+mode,null);if(g&&g.S){S=g.S;hist=g.hist||[]}else{S=newGame(mode);hist=[]}sel=null;promo=null;justTo=null}
-function save(){store.set('ds:game:'+mode,{S,hist:hist.slice(-120)});store.set('ds:mode',mode)}
-const M=()=>MODES[mode], strict=()=>!!settings.strict[mode], cpuOn=()=>settings.opp!=='human';
-const names=()=>['みどり',cpuOn()?'コンピュータ':'オレンジ'];
+let tz=null;   // つめしょうぎ: {idx,left,status:'play'|'wait'|'ok'|'ng',solved,hint}
+let ls=null;   // おけいこ: {li,step,done,choice,wrong}
+const M=()=>MODES[mode], play=()=>settings.play;
+const isGame=()=>play()==='human'||play()==='cpu';
+const strict=()=>!!settings.strict[mode], cpuOn=()=>play()==='cpu';
+const strictNow=()=>play()==='tsume'?true:play()==='lesson'?false:strict();
+const names=()=>['みどり',play()==='human'?'オレンジ':play()==='cpu'?'コンピュータ':'あいて'];
+
+function load(){
+  cancelThink();sel=null;promo=null;justTo=null;moveMap=new Map();
+  if(play()==='tsume'){
+    const g=store.get('ds:tsume:'+mode,null)||{};
+    tz={idx:0,left:1,status:'play',solved:{},hint:null,...g};
+    if(!TSUME[mode][tz.idx])tz.idx=0;
+    if(g.S){S=g.S;hist=g.hist||[];if(tz.status==='wait')tz.status='play'}else startPuzzle(tz.idx);
+  }else if(play()==='lesson'){
+    ls={li:0,step:0,done:false,choice:{},wrong:0,...(store.get('ds:lesson:'+mode,null)||{})};
+    if(!LESSONS[mode][ls.li])ls={li:0,step:0,done:false,choice:{},wrong:0};
+    buildLesson();
+  }else{
+    const g=store.get('ds:game:'+mode,null);if(g&&g.S){S=g.S;hist=g.hist||[]}else{S=newGame(mode);hist=[]}
+  }
+}
+function save(){
+  store.set('ds:mode',mode);
+  if(play()==='tsume')store.set('ds:tsume:'+mode,{idx:tz.idx,left:tz.left,status:tz.status,solved:tz.solved,S,hist:hist.slice(-20)});
+  else if(play()==='lesson')store.set('ds:lesson:'+mode,{li:ls.li,step:ls.step,done:ls.done,choice:ls.choice});
+  else store.set('ds:game:'+mode,{S,hist:hist.slice(-120)});
+}
 
 // ---------- CPU worker ----------
 let worker=null;
@@ -483,7 +627,7 @@ function cancelThink(){thinkToken++;thinking=false}
 function maybeCpu(){
   if(!cpuOn()||S.pending||S.winner!==null||S.turn!==1||thinking)return;
   thinking=true;thinkStart=Date.now();const token=++thinkToken;
-  const opts=Object.assign({strict:strict()},LEVEL[settings.opp][mode]);
+  const opts=Object.assign({strict:strict()},LEVELS[settings.level].cfg[mode]);
   const msg={token,S:{board:S.board,hands:S.hands,turn:S.turn},M:M(),opts};
   if(worker)worker.postMessage(msg);
   else setTimeout(()=>{let m=null;try{m=E.search(msg.S,msg.M,opts)}catch(e){}onCpuMove(token,m)},50);
@@ -498,6 +642,81 @@ function onCpuMove(token,m){
     commit(m);
   },wait);
 }
+
+// ---------- つめしょうぎ ----------
+function startPuzzle(i){
+  const P=TSUME[mode][i],m=M(),b=new Array(m.cols*m.rows).fill(null);
+  for(const [k,t,o,p] of P.b)b[k]={t,o,p:!!p};
+  S={board:b,hands:[{...P.h},{}],turn:0,winner:null,winText:'',last:null};hist=[];
+  tz.idx=i;tz.left=P.n===1?1:2;tz.status='play';tz.hint=null;
+}
+function tsumeMove(m){
+  const mm=M(),ok=E.moveMates(S,mm,m,tz.left);
+  hist.push(JSON.stringify(S));S=apply(S,mm,m);justTo=m.to;clearSel();tz.hint=null;
+  if(!ok)tz.status='ng';
+  else if(!legalMoves(S,mm,true).length){tz.status='ok';tz.solved[tz.idx]=1}
+  else{
+    tz.left--;tz.status='wait';const tok=++thinkToken;
+    setTimeout(()=>{if(tok!==thinkToken||play()!=='tsume'||tz.status!=='wait')return;
+      const d=E.bestDefense(S,M(),tz.left);hist.push(JSON.stringify(S));S=apply(S,M(),d);justTo=d.to;tz.status='play';save();render();justTo=null},750);
+  }
+  save();render();justTo=null;
+}
+function tsumeHint(){
+  if(tz.status!=='play')return;
+  tz.hint=E.checkMoves(S,M()).find(m=>E.moveMates(S,M(),m,tz.left))||null;render();
+}
+function tsumeRetry(){ // undo the wrong move
+  if(hist.length)S=JSON.parse(hist.pop());tz.status='play';clearSel();save();render();
+}
+function gotoPuzzle(i){cancelThink();startPuzzle(i);clearSel();save();render()}
+
+// ---------- おけいこ ----------
+function lessonSetup(L){
+  const m=M();
+  if(!L.setup){const g=newGame(mode);delete g.pending;return g}
+  const b=new Array(m.cols*m.rows).fill(null);
+  for(const [q,tok] of Object.entries(L.setup.b))b[sqIndex(mode,q)]={t:tok.slice(0,-1),o:+tok.slice(-1),p:false};
+  const h=L.setup.h||[{},{}];
+  return {board:b,hands:[{...h[0]},{...h[1]}],turn:0,winner:null,winText:'',last:null};
+}
+function parseLessonMove(str,S){
+  if(str.includes('*')){const [t,to]=str.split('*');return {drop:t,to:to==='?'?null:sqIndex(mode,to),owner:0}}
+  const pr=str.endsWith('+'),[a,b]=str.replace('+','').split('-'),from=sqIndex(mode,a);
+  return {from,to:sqIndex(mode,b),promote:pr,owner:S.board[from].o};
+}
+function lessonApply(S,m){return apply({...S,turn:m.owner},M(),{from:m.from,to:m.to,drop:m.drop,promote:m.promote})}
+const curLesson=()=>LESSONS[mode][ls.li], curStep=()=>curLesson().steps[ls.step];
+function buildLesson(){
+  const L=curLesson(),cur=L.steps[ls.step];
+  S=lessonSetup(L);hist=[];
+  const upto=ls.step+(cur.mv&&(!cur.q||ls.done)?1:0);
+  for(let k=0;k<upto;k++){const st=L.steps[k];if(!st.mv)continue;const m=parseLessonMove(st.mv,S);if(m.drop&&m.to==null)m.to=ls.choice[k];if(m.to==null)continue;S=lessonApply(S,m)}
+  if(cur.q&&!ls.done)S.turn=parseLessonMove(cur.mv,S).owner;
+}
+function lessonMove(m){
+  const exp=parseLessonMove(curStep().mv,S);
+  const match=exp.drop?(m.drop===exp.drop&&(exp.to==null||m.to===exp.to)):(!m.drop&&m.from===exp.from&&m.to===exp.to&&!!m.promote===exp.promote);
+  clearSel();
+  if(!match){ls.wrong++;ls.msg=(!m.drop&&m.from===exp.from&&m.to===exp.to)?'「パワーアップ！」を えらんでね。':'ちがうよ。光っている ところを 見てね。';render();return}
+  if(exp.drop&&exp.to==null)ls.choice[ls.step]=m.to;
+  ls.done=true;ls.wrong=0;ls.msg='';justTo=m.to;buildLesson();save();render();justTo=null;
+}
+function lessonGo(d){
+  const L=curLesson(),cur=curStep();
+  if(d>0){
+    if(cur.q&&!ls.done)return;
+    if(ls.step<L.steps.length-1){ls.step++;ls.done=false}
+    else if(ls.li<LESSONS[mode].length-1){ls.li++;ls.step=0;ls.done=false;ls.choice={}}
+    else return;
+  }else{
+    if(ls.step>0){ls.step--;ls.done=false}else return;
+  }
+  ls.wrong=0;ls.msg='';buildLesson();
+  const st=curStep();if(d>0&&st.mv&&!st.q)justTo=S.last?S.last.to:null;
+  clearSel();save();render();justTo=null;
+}
+function gotoLesson(i){ls={li:i,step:0,done:false,choice:{},wrong:0};buildLesson();clearSel();save();render()}
 
 // ---------- rendering ----------
 const $=id=>document.getElementById(id);
@@ -543,22 +762,36 @@ function layout(){
 }
 let hsCache={h:0,v:0};
 function handSize(){const h=window.innerHeight;if(!hsCache.v||Math.abs(h-hsCache.h)>=120)hsCache={h,v:Math.round(Math.max(44,Math.min(80,h*0.075)))};return hsCache.v}
-function segButtons(el,items,active,onPick,label){
+function segButtons(el,items,active,onPick){
   el.innerHTML='';
-  if(label){const l=document.createElement('span');l.className='lbl';l.textContent=label;el.appendChild(l)}
   for(const [k,html] of items){const b=document.createElement('button');b.type='button';b.setAttribute('aria-pressed',k===active);b.innerHTML=html;b.onclick=()=>onPick(k);el.appendChild(b)}
+}
+function hints(){ // squares / hand piece to flash for つめしょうぎ hints and おけいこ
+  const cells=new Set();let hand=null;
+  if(play()==='lesson'){
+    const st=curStep();(st.hl||[]).forEach(q=>cells.add(sqIndex(mode,q)));
+    if(st.q&&!ls.done&&ls.wrong>0){const m=parseLessonMove(st.mv,S);if(m.drop)hand=m.drop;else cells.add(m.from);if(m.to!=null)cells.add(m.to)}
+  }
+  if(play()==='tsume'&&tz.hint&&tz.status==='play'){if(tz.hint.drop)hand=tz.hint.drop;else cells.add(tz.hint.from)}
+  return {cells,hand};
 }
 function render(){
   document.documentElement.style.setProperty('--hs',handSize()+'px');
-  const m=M(),cpu=cpuOn(),NM=names();
-  $('app').classList.toggle('cpu',cpu);
+  const m=M(),face=play()!=='human',NM=names(),game=isGame();
+  $('app').classList.toggle('cpu',face);
   segButtons($('modes'),Object.keys(MODES).map(k=>[k,`${MODES[k].title}<small>${MODES[k].size}</small>`]),mode,k=>{
-    if(k===mode)return;cancelThink();save();mode=k;loadMode();save();render();maybeCpu()});
-  segButtons($('opps'),Object.keys(OPPS).map(k=>[k,OPPS[k].label+(k==='human'?'<small>あいて</small>':'<small>コンピュータ</small>')]),settings.opp,k=>{
-    if(k===settings.opp)return;cancelThink();settings.opp=k;store.set('ds:settings',settings);clearSel();render();maybeCpu()});
-  $('undo').disabled=!hist.length||(cpu&&!hist.some(h=>h.includes('"turn":0,')));
+    if(k===mode)return;save();mode=k;load();save();render();maybeCpu()});
+  segButtons($('plays'),PLAYS.map(([k,l,s])=>[k,`${l}<small>${s}</small>`]),play(),k=>{
+    if(k===play())return;save();settings.play=k;saveSettings();load();save();render();maybeCpu()});
+  $('levels').hidden=!cpuOn();
+  segButtons($('levels'),LEVELS.map((L,i)=>[String(i),`${L.name}<small>つよさ${i+1}</small>`]),String(settings.level),k=>{
+    if(+k===settings.level)return;cancelThink();settings.level=+k;saveSettings();render();maybeCpu()});
+  $('undo').hidden=!game;$('reset').hidden=!game;
+  $('undo').disabled=!hist.length||(cpuOn()&&!hist.some(h=>h.includes('"turn":0,')));
   const rb=$('reset');rb.textContent=resetArm?'ほんとうに？':'はじめから';rb.classList.toggle('warn',!!resetArm);
+  renderCoach();
   const cell=layout();
+  const hn=hints();
   const bd=$('board');bd.style.setProperty('--cols',m.cols);bd.innerHTML='';
   const size=Math.round(cell*0.88);
   for(let i=0;i<m.cols*m.rows;i++){
@@ -568,6 +801,7 @@ function render(){
     if(S.last&&(S.last.to===i||S.last.from===i))cls+=' last';
     if(sel&&sel.kind==='board'&&sel.i===i)cls+=' sel';
     if(moveMap.has(i)&&settings.hints){cls+=' tgt';if(S.board[i])cls+=' cap'}
+    if(hn.cells.has(i))cls+=' hint';
     cellEl.className=cls;
     const pc=S.board[i];
     if(pc){const t=tile(pc.t,pc.p,pc.o,size,pc.o===1);if(justTo===i)t.classList.add('just');cellEl.appendChild(t)}
@@ -578,48 +812,97 @@ function render(){
   for(const o of [0,1]){
     const h=$('hand'+o);h.innerHTML='';
     const types=HAND_ORDER.filter(t=>S.hands[o][t]);
-    if(!types.length){const e=document.createElement('span');e.className='empty';e.textContent='とった駒はここ';h.appendChild(e)}
-    for(const t of types){const b=document.createElement('button');b.type='button';b.className='hslot'+(sel&&sel.kind==='hand'&&sel.o===o&&sel.t===t?' sel':'');
+    if(!types.length){const e=document.createElement('span');e.className='empty';e.textContent=play()==='tsume'&&o===1?'':'とった駒はここ';h.appendChild(e)}
+    for(const t of types){const b=document.createElement('button');b.type='button';
+      b.className='hslot'+(sel&&sel.kind==='hand'&&sel.o===o&&sel.t===t?' sel':'')+(o===0&&hn.hand===t?' hint':'');
       b.setAttribute('aria-label',SP[t].n+' '+S.hands[o][t]+'こ');
-      b.appendChild(tile(t,false,o,hs,cpu&&o===1));
+      b.appendChild(tile(t,false,o,hs,face&&o===1));
       if(S.hands[o][t]>1){const c=document.createElement('span');c.className='cnt';c.textContent='×'+S.hands[o][t];b.appendChild(c)}
       b.onclick=()=>tapHand(o,t);h.appendChild(b)}
-    const on=!S.pending&&S.winner===null&&S.turn===o;
-    const pill=$('pill'+o);pill.classList.toggle('on',on);
-    const cpuTurn=on&&cpu&&o===1;
-    pill.classList.toggle('think',cpuTurn);
-    pill.textContent=cpuTurn?'かんがえちゅう':on?NM[o]+'のばん':NM[o];
+    let on=false,think=false;
+    if(game){on=!S.pending&&S.winner===null&&S.turn===o;think=on&&cpuOn()&&o===1}
+    else if(play()==='tsume'){on=(tz.status==='play'&&o===0)||(tz.status==='wait'&&o===1);think=tz.status==='wait'&&o===1}
+    const pill=$('pill'+o);pill.classList.toggle('on',on);pill.classList.toggle('think',think);
+    pill.textContent=think?'かんがえちゅう':on?NM[o]+'のばん':NM[o];
     let msg='';
-    if(on&&inCheck(S,m,o))msg=strict()?'おうて！ にげよう':'ライオンがねらわれてるよ！';
+    if(game&&on&&inCheck(S,m,o))msg=strict()?'おうて！ にげよう':'ライオンがねらわれてるよ！';
+    if(play()==='tsume'&&o===1&&inCheck(S,m,1)&&tz.status!=='ok')msg='おうて！';
     $('msg'+o).textContent=msg;
   }
   const old=$('stage').querySelector('.ov');if(old)old.remove();
-  if(promo)showPromo();else if(S.pending)showStart();else if(S.winner!==null)showWin();
+  if(promo)showPromo();
+  else if(play()==='tsume'&&(tz.status==='ok'||tz.status==='ng'))showTsumeResult();
+  else if(game&&S.pending)showStart();
+  else if(game&&S.winner!==null)showWin();
+}
+function btn(label,cls,fn,disabled){const b=document.createElement('button');b.type='button';if(cls)b.className=cls;b.textContent=label;b.onclick=fn;if(disabled)b.disabled=true;return b}
+function renderCoach(){
+  const co=$('coach'),p=play();
+  co.hidden=!(p==='tsume'||p==='lesson');if(co.hidden)return;
+  const title=$('ctitle'),chips=$('chips'),text=$('ctext'),bt=$('cbtns');
+  chips.innerHTML='';bt.innerHTML='';
+  if(p==='tsume'){
+    const list=TSUME[mode],P=list[tz.idx];
+    title.textContent=`もんだい ${tz.idx+1}（${P.n}手づめ）`;
+    list.forEach((q,i)=>{const b=btn(`${i+1}`+(q.n===3?'・3手':''),(i===tz.idx?'cur':'')+(tz.solved[i]?' ok':''),()=>gotoPuzzle(i));chips.appendChild(b)});
+    let t;
+    if(tz.status==='wait')t='あいてが にげかたを かんがえています…';
+    else if(hist.length===0)t=P.n===1?'おうてを かけて、ライオンが にげられないように しよう！（1手で つませよう）':'2かい おうてを かけて、ライオンを つかまえよう！ まずは 1手め。（3手づめ）';
+    else t='あいては こう うごいたよ。つぎの 1手で つませよう！';
+    if(tz.hint)t+=' ヒント：光っている 駒を うごかしてみよう。';
+    text.innerHTML='';text.append(t);
+    const small=document.createElement('small');small.textContent='つめしょうぎでは、みどりの ライオンは いません。あいての駒は コンピュータが うごかします。';text.appendChild(small);
+    bt.append(btn('ヒント','',tsumeHint,tz.status!=='play'||!!tz.hint),btn('さいしょから','',()=>gotoPuzzle(tz.idx)),
+      btn('◀ まえ','',()=>gotoPuzzle(tz.idx-1),tz.idx===0),btn('つぎ ▶','go',()=>gotoPuzzle(tz.idx+1),tz.idx>=list.length-1));
+  }else{
+    const L=curLesson(),st=curStep();
+    title.textContent=`${L.title}（${ls.step+1}/${L.steps.length}）`;
+    LESSONS[mode].forEach((q,i)=>chips.appendChild(btn(q.title,i===ls.li?'cur':'',()=>gotoLesson(i))));
+    text.innerHTML='';
+    const t=st.q&&ls.done?st.done:st.t;text.append(t);
+    if(st.q&&!ls.done){const s=document.createElement('strong');s.className='todo';s.textContent=' ← うごかしてみよう';text.appendChild(s)}
+    if(ls.msg){const w=document.createElement('span');w.className='warn';w.textContent=' '+ls.msg;text.appendChild(w)}
+    const last=ls.step===L.steps.length-1,lastLesson=ls.li===LESSONS[mode].length-1;
+    bt.append(btn('◀ もどる','',()=>lessonGo(-1),ls.step===0),
+      btn(last?(lastLesson?'おしまい':'つぎの おけいこ ▶'):'つぎへ ▶','go',()=>lessonGo(1),(st.q&&!ls.done)||(last&&lastLesson)));
+  }
 }
 function overlay(){const ov=document.createElement('div');ov.className='ov';$('stage').appendChild(ov);return ov}
 function showPromo(){
-  const ov=overlay(),card=document.createElement('div');card.className='card'+(S.turn===1&&!cpuOn()?' flip':'');
+  const ov=overlay(),card=document.createElement('div');card.className='card'+(S.turn===1&&!cpuOn()&&play()==='human'?' flip':'');
   const pc=S.board[promo.from];
   card.innerHTML='<h2>パワーアップする？</h2><p>えらんでね</p>';
   const ch=document.createElement('div');ch.className='choices';
   for(const pr of [true,false]){const b=document.createElement('button');b.type='button';
     b.appendChild(tile(pc.t,pr,pc.o,96,false));b.append(pr?'パワーアップ！':'このまま');
-    b.onclick=()=>{const mv=promo.moves.find(x=>x.promote===pr);promo=null;commit(mv)};ch.appendChild(b)}
+    b.onclick=()=>{const mv=promo.moves.find(x=>x.promote===pr);promo=null;doMove(mv)};ch.appendChild(b)}
   card.appendChild(ch);ov.appendChild(card);
   ov.onclick=e=>{if(e.target===ov){promo=null;render()}};
+}
+function showTsumeResult(){
+  const ov=overlay(),card=document.createElement('div');card.className='card';
+  const bt=document.createElement('div');bt.className='btns';
+  if(tz.status==='ok'){
+    card.innerHTML=`<div class="winner-big">🎉</div><h2>せいかい！</h2><p>ライオンは もう にげられません。つみです！</p>`;
+    const next=tz.idx<TSUME[mode].length-1;
+    if(next)bt.append(btn('つぎの もんだい','',()=>gotoPuzzle(tz.idx+1)));
+    bt.append(btn('もういちど とく','sub',()=>gotoPuzzle(tz.idx)));
+  }else{
+    card.innerHTML=`<div class="winner-big">🤔</div><h2>ざんねん…</h2><p>その手だと、ライオンに にげられてしまうよ。</p>`;
+    bt.append(btn('もういちど','',tsumeRetry),btn('ヒントを見る','sub',()=>{tsumeRetry();tsumeHint()}));
+  }
+  card.appendChild(bt);ov.appendChild(card);
 }
 function showStart(){
   const ov=overlay(),card=document.createElement('div'),NM=names(),cpu=cpuOn();card.className='card';
   if(startMsg){card.innerHTML=`<div class="winner-big">🎲</div><h2>${startMsg}</h2>`;ov.appendChild(card);return}
   card.innerHTML='<h2>どっちからはじめる？</h2><p>さきに指すほうをえらんでね</p>';
   const bt=document.createElement('div');bt.className='btns';
-  const mk=(label,cls,fn)=>{const b=document.createElement('button');b.type='button';b.className=cls;b.textContent=label;b.onclick=fn;bt.appendChild(b)};
-  mk(NM[0]+(cpu?'（あなた）':'')+'から','',()=>startGame(0));
-  mk(NM[1]+'から','p1b',()=>startGame(1));
-  mk('🎲 ランダム','sub',()=>{
-    const f=Math.random()<.5?0:1,target=S;
-    startMsg=names()[f]+'からはじめるよ！';render();
-    setTimeout(()=>{startMsg='';if(S===target)startGame(f);else render()},1400)});
+  bt.append(btn(NM[0]+(cpu?'（あなた）':'')+'から','',()=>startGame(0)),btn(NM[1]+'から','p1b',()=>startGame(1)),
+    btn('🎲 ランダム','sub',()=>{
+      const f=Math.random()<.5?0:1,target=S;
+      startMsg=names()[f]+'からはじめるよ！';render();
+      setTimeout(()=>{startMsg='';if(S===target)startGame(f);else render()},1400)}));
   card.appendChild(bt);ov.appendChild(card);
 }
 function startGame(f){S.turn=f;S.pending=false;clearSel();save();render();maybeCpu()}
@@ -628,26 +911,30 @@ function showWin(){
   const humanLost=cpu&&S.winner===1;
   card.innerHTML=`<div class="winner-big">${humanLost?'🤖':'🎉'}</div><h2>${names()[S.winner]}のかち！</h2><p>${S.winText}${humanLost?'<br>「まった」でやりなおせるよ':''}</p>`;
   const bt=document.createElement('div');bt.className='btns';
-  const a=document.createElement('button');a.type='button';a.textContent='もういちど';a.onclick=()=>{cancelThink();S=newGame(mode);hist=[];sel=null;moveMap.clear();save();render()};
-  const u=document.createElement('button');u.type='button';u.className='sub';u.textContent='↶ まった';u.onclick=undo;
-  bt.append(a,u);card.appendChild(bt);ov.appendChild(card);
+  bt.append(btn('もういちど','',()=>{cancelThink();S=newGame(mode);hist=[];clearSel();save();render()}),btn('↶ まった','sub',undo));
+  card.appendChild(bt);ov.appendChild(card);
 }
 
 // ---------- interaction ----------
 function clearSel(){sel=null;moveMap=new Map()}
 function selectFrom(filterFn,s){
-  const ms=legalMoves(S,M(),strict()).filter(filterFn);moveMap=new Map();
+  const ms=legalMoves(S,M(),strictNow()).filter(filterFn);moveMap=new Map();
   for(const m of ms){if(!moveMap.has(m.to))moveMap.set(m.to,[]);moveMap.get(m.to).push(m)}
   sel=s;
 }
-const humanTurn=()=>!(cpuOn()&&S.turn===1);
+function canAct(){
+  if(promo)return false;
+  if(play()==='tsume')return tz.status==='play'&&S.turn===0;
+  if(play()==='lesson'){const st=curStep();return !!(st.q&&!ls.done)}
+  return !S.pending&&S.winner===null&&!(cpuOn()&&S.turn===1);
+}
 function tapCell(i){
   wake();
-  if(S.pending||S.winner!==null||promo||!humanTurn())return;
+  if(!canAct())return;
   if(moveMap.has(i)){
     const ms=moveMap.get(i);clearSel();
     if(ms.length>1){promo={from:ms[0].from,moves:ms};render();return}
-    commit(ms[0]);return;
+    doMove(ms[0]);return;
   }
   const pc=S.board[i];
   if(pc&&pc.o===S.turn&&!(sel&&sel.kind==='board'&&sel.i===i)){selectFrom(m=>!m.drop&&m.from===i,{kind:'board',i})}
@@ -656,9 +943,14 @@ function tapCell(i){
 }
 function tapHand(o,t){
   wake();
-  if(S.pending||S.winner!==null||promo||o!==S.turn||!humanTurn())return;
+  if(!canAct()||o!==S.turn)return;
   if(sel&&sel.kind==='hand'&&sel.t===t){clearSel()}else selectFrom(m=>m.drop===t,{kind:'hand',o,t});
   render();
+}
+function doMove(m){
+  if(play()==='tsume')return tsumeMove(m);
+  if(play()==='lesson')return lessonMove(m);
+  commit(m);
 }
 function commit(m){
   const mm=M(),mover=S.turn,cap=m.drop?null:S.board[m.to];
@@ -668,7 +960,7 @@ function commit(m){
   maybeCpu();
 }
 function undo(){
-  if(!hist.length)return;
+  if(!hist.length||!isGame())return;
   cancelThink();
   S=JSON.parse(hist.pop());
   while(cpuOn()&&S.turn===1&&hist.length)S=JSON.parse(hist.pop());
@@ -686,24 +978,28 @@ function openSettings(){
   const m=M(),sh=$('sheet');sh.innerHTML='';
   const head=document.createElement('div');head.className='head';
   head.innerHTML=`<h2>せってい（${m.title}どうぶつしょうぎ）</h2>`;
-  const cl=document.createElement('button');cl.className='close';cl.type='button';cl.textContent='とじる';cl.onclick=closeSettings;head.appendChild(cl);sh.appendChild(head);
+  head.appendChild(btn('とじる','close',closeSettings));sh.appendChild(head);
 
-  const h1=document.createElement('h3');h1.textContent='勝ちかた';sh.appendChild(h1);
+  const h1=document.createElement('h3');h1.textContent='勝ちかた（ふたりで・コンピュータ）';sh.appendChild(h1);
   for(const v of [false,true]){
     const l=document.createElement('label');l.className='opt';
     l.innerHTML=`<input type="radio" name="strict" id="strict-${v}" ${!!settings.strict[mode]===v?'checked':''}><span>${v?'つみで勝ち（しょうぎルール）':'ライオンをつかまえたら勝ち（やさしい）'}<small>${v?'ライオンが取られる手はさせません。にげられなくなったら負け。':'あぶない手も指せます。ねらわれていると「ライオンがねらわれてるよ！」と出ます。'}</small></span>`;
-    l.querySelector('input').onchange=()=>{settings.strict[mode]=v;store.set('ds:settings',settings);clearSel();render()};
+    l.querySelector('input').onchange=()=>{settings.strict[mode]=v;saveSettings();clearSel();render()};
     sh.appendChild(l);
   }
   const hl=document.createElement('label');hl.className='opt';
   hl.innerHTML=`<input type="checkbox" id="hints" ${settings.hints?'checked':''}><span>動けるマスを光らせる<small>駒をタップすると、行けるマスに黄色い丸が出ます。</small></span>`;
-  hl.querySelector('input').onchange=e=>{settings.hints=e.target.checked;store.set('ds:settings',settings);render()};
+  hl.querySelector('input').onchange=e=>{settings.hints=e.target.checked;saveSettings();render()};
   sh.appendChild(hl);
 
-  const hc=document.createElement('h3');hc.textContent='コンピュータたいせん';sh.appendChild(hc);
-  const nc=document.createElement('p');nc.className='note';
-  nc.textContent='画面上の「よわい／ふつう／つよい」を選ぶと、上側（オレンジ）をコンピュータが指します。あなたは下側（みどり）です。ゲームを始めるたびに、どちらから指すか（ランダムも可）を選べます。「まった」を押すと、コンピュータの手とあなたの手をまとめて戻します。「よわい」はわざと時々まちがえるので、はじめての子どもにおすすめです。';
-  sh.appendChild(nc);
+  const hc=document.createElement('h3');hc.textContent='あそびかた';sh.appendChild(hc);
+  const ul0=document.createElement('ul');ul0.className='rules';
+  for(const t of ['ふたりで：iPadをはさんで向かい合って対戦します。',
+    'コンピュータ：上側（オレンジ）をコンピュータが指します。強さは よわい・ふつう・つよい・さいきょう の4つ。「よわい」は ほとんど でたらめに指すので、駒の動かし方を覚えたばかりの子ども向けです。「まった」はコンピュータの手とあなたの手をまとめて戻します。',
+    'つめしょうぎ：王手を続けてライオンを詰ませる問題です（1手詰・3手詰）。すべての問題は、答えがあることをプログラムで確かめてあります。解いた問題には ✓ が付きます。',
+    'おけいこ：説明を読みながら駒を動かして、基本の動きや、よく使われる指し方（おおきな森では 棒銀・舟囲い・美濃囲い）を覚えます。'])
+    {const li=document.createElement('li');li.textContent=t;ul0.appendChild(li)}
+  sh.appendChild(ul0);
 
   const h2=document.createElement('h3');h2.textContent='駒の絵をお手元の駒にそろえる';sh.appendChild(h2);
   const note=document.createElement('p');note.className='note';
@@ -720,8 +1016,7 @@ function openSettings(){
     const inp=document.createElement('input');inp.type='file';inp.accept='image/*';inp.id=fid;
     inp.onchange=()=>{const f=inp.files&&inp.files[0];if(f)loadImage(f,t,!!p)};
     meta.append(lab,inp);
-    if(getImg(mode,t,!!p)){const rm=document.createElement('button');rm.type='button';rm.className='sub';rm.textContent='もとにもどす';
-      rm.onclick=()=>{const k=imgKey(mode,t,!!p);store.del(k);imgCache[k]=null;render();openSettings()};meta.appendChild(rm)}
+    if(getImg(mode,t,!!p))meta.appendChild(btn('もとにもどす','sub',()=>{const k=imgKey(mode,t,!!p);store.del(k);imgCache[k]=null;render();openSettings()}));
     row.appendChild(meta);grid.appendChild(row);
   });
   sh.appendChild(grid);
@@ -756,7 +1051,7 @@ function wake(){if(lock||!navigator.wakeLock)return;navigator.wakeLock.request('
 document.addEventListener('gesturestart',e=>e.preventDefault(),{passive:false});
 document.addEventListener('dblclick',e=>e.preventDefault(),{passive:false});
 let rt;window.addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(render,80)});
-loadMode();render();maybeCpu();
+load();render();maybeCpu();
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{lay.cell=0;render()});
 window.addEventListener('orientationchange',()=>{hsCache.v=0;setTimeout(render,300)});
 if(window.ResizeObserver){let lastW=0,lastH=0;new ResizeObserver(es=>{const r=es[0].contentRect;const w=Math.round(r.width),h=Math.round(r.height);if(w===lastW&&h===lastH)return;lastW=w;lastH=h;if(w!==lay.w||h!==lay.h)render()}).observe($('stage'))}
