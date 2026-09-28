@@ -1,0 +1,720 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#23392d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="盤あそび">
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="apple-touch-icon" href="../icon-180.png">
+<link rel="icon" href="../icon-192.png">
+<style>
+#app{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+a.brand{color:inherit;text-decoration:none;display:flex;align-items:center;gap:8px}
+a.brand .hm{font-size:13px;font-weight:700;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18)}
+</style>
+<title>リバーシ盤</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap">
+<style>
+:root{
+  color-scheme: dark;
+  --forest:#23392d; --forest2:#2f4a3a; --cream:#fff6e3; --muted:#b9c9b6;
+  --felt:#2f8a57; --felt-line:#1c5c38; --frame:#6b4a2b;
+  --hi:#ffe36e; --ink:#4a3521; --go:#3f9a5b;
+  --font:"Zen Maru Gothic","Hiragino Maru Gothic ProN","Hiragino Sans",sans-serif;
+}
+[hidden]{display:none!important}
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+*{touch-action:manipulation}
+body{margin:0;background:var(--forest);color:var(--cream);font-family:var(--font);
+  -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;overflow:hidden}
+button{font-family:inherit;cursor:pointer}
+button:focus-visible{outline:3px solid var(--hi);outline-offset:2px}
+#app{height:100%;display:flex;flex-direction:column;padding-inline:16px}
+
+/* toolbar */
+.bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding-block:8px;border-bottom:1px solid rgba(255,255,255,.08);flex:none}
+.brand{font-weight:900;font-size:15px;letter-spacing:.04em;margin-right:auto;white-space:nowrap}
+.seg{display:flex;background:rgba(0,0,0,.25);border-radius:12px;padding:3px;gap:3px}
+.seg button{border:0;background:transparent;color:var(--muted);font-weight:700;font-size:14px;padding:8px 12px;border-radius:9px;line-height:1.15;white-space:nowrap;display:flex;align-items:center;gap:5px}
+.seg button small{font-size:11px;font-weight:500;opacity:.8}
+.seg button[aria-pressed="true"]{background:var(--cream);color:var(--ink)}
+.tools{display:flex;gap:6px}
+.tools button{border:1px solid rgba(255,255,255,.18);background:var(--forest2);color:var(--cream);font-weight:700;font-size:14px;padding:9px 12px;border-radius:10px}
+.tools button:disabled{opacity:.35}
+.tools button.warn{background:#8c3b2a;border-color:#c55}
+
+/* score (disc counts, always visible) */
+.score{flex:none;display:flex;flex-direction:column;align-items:center;gap:2px;padding-block:6px}
+.score.top{transform:rotate(180deg)}
+.chips{display:flex;gap:10px;justify-content:center;flex-wrap:nowrap}
+.chip{display:flex;align-items:center;gap:8px;padding:5px 14px 5px 6px;border-radius:999px;background:rgba(255,255,255,.07);border:2px solid transparent;transition:background .2s,border-color .2s}
+.chip.on{border-color:var(--hi);background:rgba(255,227,110,.18)}
+.chip .disc{width:34px;height:34px;flex:none}
+.chip b{font-size:26px;font-weight:900;font-variant-numeric:tabular-nums;min-width:2ch;text-align:right;line-height:1}
+.chip .nm{font-size:13px;font-weight:700;color:var(--muted);white-space:nowrap}
+.chip.on .nm{color:var(--cream)}
+.smsg{height:18px;font-size:13px;font-weight:700;color:var(--hi);white-space:nowrap}
+.think::after{content:"";display:inline-block;width:1.2em;text-align:left;animation:dots 1.2s steps(4) infinite}
+@keyframes dots{0%{content:""}25%{content:"・"}50%{content:"・・"}75%{content:"・・・"}}
+
+/* board */
+.stage{flex:1;min-height:0;display:grid;place-items:center;position:relative;overflow:hidden}
+.board{display:grid;grid-template-columns:repeat(var(--n),var(--cell));grid-auto-rows:var(--cell);position:relative;
+  background:var(--felt);border:8px solid var(--frame);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.cell{position:relative;border-right:1.5px solid var(--felt-line);border-bottom:1.5px solid var(--felt-line);display:grid;place-items:center}
+.cell.lc{border-right:0}.cell.lr{border-bottom:0}
+.star{position:absolute;width:9px;height:9px;border-radius:50%;background:var(--felt-line);transform:translate(-50%,-50%);pointer-events:none}
+.disc{width:84%;height:84%;border-radius:50%;box-shadow:0 2px 3px rgba(0,0,0,.45),inset 0 -2px 4px rgba(0,0,0,.25)}
+.disc.c0{background:radial-gradient(circle at 35% 30%,#5a5a5a,#141414 62%)}
+.disc.c1{background:radial-gradient(circle at 35% 30%,#ffffff,#d9d9cf 72%)}
+.disc.c2{background:radial-gradient(circle at 35% 30%,#ff9282,#c7322a 70%)}
+.disc.c3{background:radial-gradient(circle at 35% 30%,#94beff,#2d61b8 70%)}
+.disc.c4{background:radial-gradient(circle at 35% 30%,#d0d0d0,#858585 70%)}
+.disc.ghost{opacity:.5}
+.disc.drop{animation:drop .22s ease-out}
+.disc.flip{animation:flip .42s ease-in-out}
+@keyframes drop{0%{transform:scale(1.25)}100%{transform:scale(1)}}
+@keyframes flip{0%{transform:scaleX(1)}50%{transform:scaleX(.06)}100%{transform:scaleX(1)}}
+.cell.last::before{content:"";position:absolute;width:13%;height:13%;border-radius:50%;background:#e0463c;z-index:2;pointer-events:none}
+.cell.can::after{content:attr(data-n);position:absolute;width:32%;height:32%;border-radius:50%;background:rgba(255,227,110,.85);
+  display:grid;place-items:center;font-weight:900;font-size:calc(var(--cell)*.17);color:var(--ink);pointer-events:none}
+.cell.willflip .disc{box-shadow:0 0 0 4px var(--hi),0 2px 3px rgba(0,0,0,.45)}
+.cell.hint{box-shadow:inset 0 0 0 4px #ff6b5a;animation:hintp 1.1s ease-in-out infinite}
+@keyframes hintp{50%{box-shadow:inset 0 0 0 4px rgba(255,107,90,.25)}}
+@media (prefers-reduced-motion:reduce){.disc.drop,.disc.flip,.cell.hint{animation:none}}
+
+/* coach panel (もんだい・おけいこ) — fixed height so the board never jumps */
+.coach{flex:none;background:var(--cream);color:var(--ink);border-radius:14px;padding:8px 12px;margin-block:4px;display:flex;flex-direction:column;gap:4px}
+.crow{display:flex;gap:10px;align-items:center;min-width:0}
+.ctitle{font-weight:900;font-size:16px;white-space:nowrap}
+.cchips{display:flex;gap:6px;overflow-x:auto;flex:1;min-width:0;padding-block:2px}
+.cchips button{flex:none;border:0;border-radius:999px;padding:6px 11px;font-weight:700;font-size:13px;background:#eadbb8;color:var(--ink);white-space:nowrap}
+.cchips button.cur{background:var(--go);color:#fff}
+.cchips button.ok::after{content:" ✓"}
+.cbtns{flex:none;display:flex;gap:6px}
+.cbtns button{flex:none;border:0;border-radius:10px;padding:8px 12px;font-weight:900;font-size:14px;background:var(--forest2);color:var(--cream)}
+.cbtns button.go{background:var(--go);color:#fff}
+.cbtns button:disabled{opacity:.35}
+.ctext{font-size:15px;font-weight:700;line-height:1.45;height:4.4em;overflow-y:auto}
+.ctext .warn{color:#c0392b}
+.ctext .todo{color:var(--go)}
+
+/* overlays */
+.ov{position:absolute;inset:0;display:grid;place-items:center;background:rgba(20,32,25,.55);z-index:10}
+.card{background:var(--cream);color:var(--ink);border-radius:18px;padding:20px 24px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.4);max-width:calc(100% - 32px)}
+.card h2{margin:0 0 6px;font-size:28px;font-weight:900;text-wrap:balance}
+.card p{margin:0 0 14px;font-size:16px;font-weight:700;color:#7a5a3a}
+.big{font-size:60px;line-height:1;margin-bottom:6px}
+.btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.btns button{border:0;border-radius:12px;padding:12px 18px;font-weight:900;font-size:16px;background:var(--go);color:#fff;display:flex;align-items:center;gap:8px}
+.btns button.sub{background:#d9c9a6;color:var(--ink)}
+.btns button .disc{width:22px;height:22px}
+.rank{display:flex;flex-direction:column;gap:6px;margin:0 auto 14px;width:max-content}
+.rank div{display:flex;align-items:center;gap:10px;font-weight:900;font-size:18px}
+.rank .disc{width:26px;height:26px}
+.rank b{font-variant-numeric:tabular-nums;min-width:2ch;text-align:right}
+
+/* settings */
+.modal{position:fixed;inset:0;background:rgba(10,20,14,.7);z-index:50;display:grid;place-items:center;padding:16px}
+.sheet{background:var(--cream);color:var(--ink);border-radius:18px;width:min(720px,100%);max-height:calc(100% - 32px);overflow:auto;padding:20px 22px;-webkit-user-select:text;user-select:text}
+.sheet h3{margin:18px 0 8px;font-size:17px;font-weight:900}
+.sheet .head{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.sheet .head h2{margin:0;font-size:20px;font-weight:900}
+.sheet .close{border:0;background:var(--forest2);color:var(--cream);font-weight:900;border-radius:10px;padding:10px 16px;font-size:15px}
+.sheet label.opt{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:12px;background:#f3e6c8;margin-bottom:6px;font-weight:700;font-size:15px;line-height:1.45}
+.sheet label.opt small{display:block;font-weight:500;color:#7a5a3a;font-size:13px}
+.sheet input{width:20px;height:20px;margin-top:2px;flex:none;accent-color:var(--go)}
+.rowopts{display:flex;gap:8px;flex-wrap:wrap}
+.rowopts label.opt{flex:1;min-width:140px;align-items:center}
+.rules{margin:0;padding-left:1.2em;font-size:14px;line-height:1.7;max-width:65ch}
+</style>
+</head>
+<body>
+
+
+<div id="app">
+  <div class="bar">
+    <a class="brand" href="../"><span class="hm">◀ ホーム</span>リバーシ盤</a>
+    <div class="seg" id="plays"></div>
+    <div class="seg" id="opt1"></div>
+    <div class="seg" id="opt2"></div>
+    <div class="tools">
+      <button id="undo" type="button">↶ まった</button>
+      <button id="reset" type="button">はじめから</button>
+      <button id="gear" type="button">せってい</button>
+    </div>
+  </div>
+  <div class="coach" id="coach" hidden>
+    <div class="crow"><div class="ctitle" id="ctitle"></div><div class="cchips" id="cchips"></div><div class="cbtns" id="cbtns"></div></div>
+    <div class="ctext" id="ctext"></div>
+  </div>
+  <div class="score top" id="scoreTop"><div class="chips" id="chipsTop"></div><div class="smsg" id="msgTop"></div></div>
+  <div class="stage" id="stage"><div class="board" id="board"></div></div>
+  <div class="score" id="scoreBot"><div class="chips" id="chipsBot"></div><div class="smsg" id="msgBot"></div></div>
+</div>
+<div class="modal" id="modal" hidden><div class="sheet" id="sheet"></div></div>
+
+<script>
+// ================= engine (shared with the CPU worker) =================
+// board: array of n*n; -1 = empty, 0..3 = player colors (くろ・しろ・あか・あお), 4 = neutral gray stone
+function reversiEngine(){
+const DIRS=[[-1,-1],[0,-1],[1,-1],[-1,0],[1,0],[-1,1],[0,1],[1,1]];
+// stones flipped if player p places at i (any color other than p between i and a p stone gets flipped)
+function flipsAt(b,n,i,p){
+  if(b[i]!==-1)return [];
+  const r=Math.floor(i/n),c=i%n,out=[];
+  for(const [dx,dy] of DIRS){
+    let rr=r+dy,cc=c+dx;const line=[];
+    while(rr>=0&&rr<n&&cc>=0&&cc<n){const j=rr*n+cc,v=b[j];if(v===-1)break;if(v===p){if(line.length)out.push(...line);break}line.push(j);rr+=dy;cc+=dx}
+  }
+  return out;
+}
+function movesFor(b,n,p){const r=[];for(let i=0;i<n*n;i++){if(b[i]!==-1)continue;const f=flipsAt(b,n,i,p);if(f.length)r.push({i,f})}return r}
+function place(b,i,p,f){const nb=b.slice();nb[i]=p;for(const k of f)nb[k]=p;return nb}
+function counts(b){const c=[0,0,0,0,0];for(const v of b)if(v>=0)c[v]++;return c}
+function empties(b){let e=0;for(const v of b)if(v===-1)e++;return e}
+// next player (in seat order) who can move; passed = players skipped; null = game over
+function nextTurn(b,n,players,cur){
+  const k=players.indexOf(cur),passed=[];
+  for(let s=1;s<=players.length;s++){const p=players[(k+s)%players.length];if(movesFor(b,n,p).length)return {p,passed};passed.push(p)}
+  return null;
+}
+// ---------- evaluation ----------
+const wcache={};
+function weights(n){
+  if(wcache[n])return wcache[n];
+  const w=new Array(n*n).fill(1),L=n-1;
+  for(let r=0;r<n;r++)for(let c=0;c<n;c++){
+    const edgeR=r===0||r===L,edgeC=c===0||c===L,nearR=r===1||r===L-1,nearC=c===1||c===L-1;let v=1;
+    if(edgeR&&edgeC)v=100;                  // corner
+    else if(nearR&&nearC)v=-40;             // X square (diagonal to a corner)
+    else if((edgeR&&nearC)||(edgeC&&nearR))v=-15; // C square (next to a corner on the edge)
+    else if(edgeR||edgeC)v=8;
+    else if(nearR||nearC)v=-3;
+    w[r*n+c]=v;
+  }
+  return wcache[n]=w;
+}
+function evalFor(b,n,me,op){
+  const w=weights(n);let s=0;
+  for(let i=0;i<n*n;i++){if(b[i]===me)s+=w[i];else if(b[i]===op)s-=w[i]}
+  const mm=movesFor(b,n,me).length,om=movesFor(b,n,op).length;
+  return s+6*(mm-om);
+}
+// exact final disc difference (me - op) with perfect play, me to move
+function solve(b,n,me,op,alpha,beta,passed,tick){
+  tick&&tick();
+  const ms=movesFor(b,n,me);
+  if(!ms.length){
+    if(passed){const c=counts(b);return c[me]-c[op]}
+    return -solve(b,n,op,me,-beta,-alpha,true,tick);
+  }
+  ms.sort((x,y)=>weights(n)[y.i]-weights(n)[x.i]);
+  let best=-Infinity;
+  for(const m of ms){const v=-solve(place(b,m.i,me,m.f),n,op,me,-beta,-alpha,false,tick);if(v>best)best=v;if(v>alpha)alpha=v;if(alpha>=beta)break}
+  return best;
+}
+const TIMEOUT={};
+// 2-player search: returns square index
+function search(b,n,me,op,opts){
+  const deadline=Date.now()+(opts.time||1000);let nodes=0;
+  const tick=()=>{if((++nodes&1023)===0&&Date.now()>deadline)throw TIMEOUT};
+  const root=movesFor(b,n,me);if(!root.length)return -1;
+  const w=weights(n);
+  if(empties(b)<=opts.exact){
+    try{let best=null,bv=-Infinity;for(const m of root){const v=-solve(place(b,m.i,me,m.f),n,op,me,-Infinity,Infinity,false,tick)+(Math.random()*2-1)*opts.noise/100;if(v>bv){bv=v;best=m.i}}return best}
+    catch(e){if(e!==TIMEOUT)throw e}
+  }
+  function nm(b,p,q,d,alpha,beta,passed){
+    tick();
+    if(d===0)return evalFor(b,n,p,q);
+    const ms=movesFor(b,n,p);
+    if(!ms.length){if(passed){const c=counts(b);return (c[p]-c[q])*1000}return -nm(b,q,p,d,-beta,-alpha,true)}
+    ms.sort((x,y)=>w[y.i]-w[x.i]);
+    let best=-Infinity;
+    for(const m of ms){const v=-nm(place(b,m.i,p,m.f),q,p,d-1,-beta,-alpha,false);if(v>best)best=v;if(v>alpha)alpha=v;if(alpha>=beta)break}
+    return best;
+  }
+  let scored=root.map(m=>({m,s:w[m.i]}));
+  for(let d=1;d<=opts.depth;d++){
+    try{const res=scored.map(({m})=>({m,s:-nm(place(b,m.i,me,m.f),op,me,d-1,-Infinity,Infinity,false)}));res.sort((x,y)=>y.s-x.s);scored=res}
+    catch(e){if(e!==TIMEOUT)throw e;break}
+    if(Date.now()>deadline)break;
+  }
+  const noisy=scored.map(x=>({i:x.m.i,s:x.s+(Math.random()*2-1)*opts.noise}));noisy.sort((x,y)=>y.s-x.s);
+  return noisy[0].i;
+}
+// 3-4 players: look one move ahead (position value + flips − what the next player can do)
+function greedyMulti(b,n,players,me,opts){
+  const w=weights(n),ms=movesFor(b,n,me);if(!ms.length)return -1;
+  let best=-1,bv=-Infinity;
+  for(const m of ms){
+    const nb=place(b,m.i,me,m.f);let v=w[m.i]+2*m.f.length;
+    if(opts.depth>1){const nt=nextTurn(nb,n,players,me);if(nt){const om=movesFor(nb,n,nt.p);let worst=0;for(const o of om)worst=Math.max(worst,w[o.i]+o.f.filter(k=>nb[k]===me).length*2);v-=worst*0.8}}
+    v+=(Math.random()*2-1)*opts.noise/10;
+    if(v>bv){bv=v;best=m.i}
+  }
+  return best;
+}
+return {flipsAt,movesFor,place,counts,empties,nextTurn,weights,solve,search,greedyMulti};
+}
+
+// ================= app =================
+(()=>{
+const E=reversiEngine();
+const NAMES=['くろ','しろ','あか','あお'];
+const PLAYS=[['multi','みんなで','2〜4にん'],['cpu','コンピュータ','たいせん'],['puzzle','もんだい',''],['lesson','おけいこ','']];
+const LEVELS=[
+  {name:'よわい',two:{depth:1,time:300,noise:60,exact:0},multi:{depth:1,noise:60}},
+  {name:'ふつう',two:{depth:4,time:1200,noise:6,exact:10},multi:{depth:2,noise:12}},
+  {name:'つよい',two:{depth:8,time:2500,noise:0,exact:12},multi:{depth:2,noise:0}},
+];
+// verified puzzles: b = board rows ("B" = くろ = the child, "W" = しろ), a = the one right answer
+const PUZZLES=[{"k":"corner","n":6,"b":"........B.....BBW...BWW..WB.W.W.B...","a":35},{"k":"corner","n":6,"b":"......WW..B..WWWW...WW....WWB...W...","a":0},{"k":"corner","n":6,"b":"...B...BBB...WBWW...BWB...WB...WB.B.","a":30},{"k":"corner","n":8,"b":"...B......BB.......B.W.....BB.....WBWWW....W.W......W.W.........","a":63},{"k":"corner","n":8,"b":"...WWW......W.W..BBBBBWW...WBW.....BB.......B...................","a":7},{"k":"corner","n":8,"b":"..B.WWW...BBWW....BBBW....WBWBW.BBWWWWB.BWWB.BBBBW.BB..W........","a":63},{"k":"most","n":6,"b":"......BB....WBWW..WWWB...WB....BBW..","a":24},{"k":"most","n":6,"b":".BW....WWW....WB....BWB.....B.....B.","a":0},{"k":"most","n":6,"b":"........W.....WW....WWW....WB....BBB","a":9},{"k":"most","n":8,"b":"............W.....BBWWW...BBBW....BWW......W.W..................","a":23},{"k":"most","n":8,"b":"...................BBB.....BB......BBW....B..WW..B..BBW......WWB","a":55},{"k":"most","n":8,"b":".....B.......B.B...BWWW....BBB.W...BBB.....B.......B............","a":23},{"k":"pass","n":6,"b":"BBW.W.WBBWWWWBBBWWWBWWWWWBBWW..WWWWW","a":30},{"k":"pass","n":6,"b":".WWWWW.WWWWWWWBWBWBWBBWWBBWWWWB.BBBB","a":31},{"k":"pass","n":8,"b":"WBBBBBBBWWWWWWWWWWWWWWW.BWBBBWBBBWBBWBBBBWBWBWWBBBBBBWW.BBBBWWW.","a":23},{"k":"pass","n":8,"b":"BBBBBWW..WWBWWW.WWWWWBWWWWWBWBWWWWWBBWWWWWBBWBWBWBBBBBBBBBBBBBBB","a":8},{"k":"win","n":6,"b":"WWWWWBWWBWBBWWWWBBWWWBBB.WWWBB..W.BW","a":33},{"k":"win","n":6,"b":"WWWWWBBWWWWBBBBBWBWWBWWBWWWWWBWW....","a":34},{"k":"win","n":6,"b":".BWWW..BBW.WWBBBWWBBWWWWBBWWWBBBBWWB","a":5},{"k":"win","n":6,"b":"BBWWWWWBBBWW.WWWWWWWWBWW..WWBW.WB..B","a":12},{"k":"win","n":6,"b":".BBB.WWBWWW.WBBBWBWWWWWWWWWB.W.WWWW.","a":28},{"k":"win","n":6,"b":"BBBBWWBWWBWW.WWWBWW.WBWW.WBWWW.BB..B","a":12}];
+const KIND={
+  corner:{t:'かどを とろう',q:'かどに おける ところが あるよ。さがして おいてみよう！'},
+  most:{t:'たくさん ひっくりかえそう',q:'いちばん たくさん ひっくりかえせる ところに おこう！'},
+  pass:{t:'パスさせよう',q:'しろが どこにも おけなくなる（パスになる）ところに おこう！'},
+  win:{t:'かてる 1手',q:'のこりは あと すこし。かてる ところに おこう！ このあとは コンピュータが さいごまで すすめるよ。'},
+};
+// lessons on 6×6. Squares: letter = column from the left (a-f), number = row from the top (1-6).
+// mv: "B:e3" / "W:a1" scripted move, "B:pass", "?" = child places anywhere legal, "e3" (with q) = child must place there, "auto" = computer moves
+const LESSONS=[
+  {title:'はさんで ひっくりかえす',steps:[
+    {t:'オセロは くろと しろの いしで あそびます。くろから はじめるよ。',hl:['c3','d3','c4','d4']},
+    {t:'じぶんの いしで あいての いしを はさむと、はさまれた いしが ひっくりかえって じぶんの いろに なります。'},
+    {t:'ひかっている ところに くろを おいて、しろを はさんでみよう！',mv:'?',q:true,done:'はさんだ しろが くろに かわったね！'},
+    {t:'こんどは しろの ばん。しろも くろを はさんで ひっくりかえします。',mv:'auto'},
+    {t:'さいごに いしが おおい ほうが かちです。いまの かずは いつも 盤の 下に でているよ。'}]},
+  {title:'おける ところ',steps:[
+    {t:'いしは どこにでも おけるわけでは ありません。あいての いしを はさめる ところにだけ おけます。'},
+    {t:'くろが おける ところを さがして、おいてみよう（こんどは ひかりません）。',mv:'?',q:true,nohint:true,done:'せいかい！ そこなら しろを はさめるね。'},
+    {t:'わからない ときは、せっていの「おけるところを ひからせる」を つかおう。'}]},
+  {title:'いっぺんに たくさん',setup:{b:{c3:'B',d3:'W',e4:'W',e5:'B',d4:'B',c4:'W'}},steps:[
+    {t:'いちどに いくつもの ほうこうを はさめる ところも あるよ。',hl:['e3']},
+    {t:'ひかっている ところに くろを おいてみよう。',mv:'e3',q:true,hl:['e3'],done:'よこと たての 2ほうこうを いっぺんに ひっくりかえせたね！'}]},
+  {title:'かどを とろう',setup:{b:{b2:'W',c3:'B',c2:'W',d2:'B',d3:'W',d4:'B',c4:'W',b3:'B'}},steps:[
+    {t:'すみっこの「かど」に おいた いしは、ぜったいに ひっくりかえされません。',hl:['a1','f1','a6','f6']},
+    {t:'かどに くろを おいてみよう！',mv:'a1',q:true,done:'かどを とったね！ かどは いちばん つよい ばしょ です。'},
+    {t:'かどから つながった へんの いしも、ひっくりかえされにくく なります。'}]},
+  {title:'かどの ななめとなりは きけん',setup:{b:{c3:'W',d4:'B',e5:'W',d3:'W',c4:'B'}},steps:[
+    {t:'かどの ななめ となりの マスを 見てね。',hl:['b2']},
+    {t:'くろが ここに おくと…',mv:'B:b2'},
+    {t:'しろに かどを とられて、3つも ひっくりかえされちゃった！',mv:'W:a1'},
+    {t:'かどの ななめ となりに おくと、あいてに かどを あげやすく なります。はじめのうちは さけよう。'}]},
+  {title:'パス',setup:{b:{a1:'W',b1:'B',c3:'W',c4:'W',d4:'W'}},steps:[
+    {t:'くろの ばん。でも、くろが おける ところが ひとつも ない…'},
+    {t:'おける ところが ない ときは「パス」。あいての ばんに なります。',mv:'B:pass'},
+    {t:'しろが おいて、くろを はさみました。',mv:'W:c1'},
+    {t:'どちらも おけなく なったら ゲームおしまい。いしの かずを くらべて、おおい ほうの かち！'}]},
+];
+
+
+// ---------- storage ----------
+const store={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){return false}}};
+let settings=Object.assign({play:'multi',players:2,size:{m2:8,m3:8,m4:8,cpu:8},level:0,hints:true,showFlips:false,preview:false,handicap:0,seats:['h','h','h','h']},store.get('rv:settings',{}));
+if(!PLAYS.some(p=>p[0]===settings.play))settings.play='multi';
+const saveSettings=()=>store.set('rv:settings',settings);
+const play=()=>settings.play, isGame=()=>play()==='multi'||play()==='cpu';
+
+function startBoard(n,P){
+  const b=new Array(n*n).fill(-1),m=n/2,tl=(m-1)*n+m-1,tr=tl+1,bl=tl+n,br=bl+1;
+  if(P===2){b[tl]=1;b[tr]=0;b[bl]=0;b[br]=1}
+  else{b[tl]=0;b[tr]=1;b[br]=2;b[bl]=P===4?3:4} // 3人: 4つめは だれのでもない はいいろ
+  return b;
+}
+function newGame(){
+  if(play()==='cpu'){const n=settings.size.cpu;return {n,players:[0,1],b:startBoard(n,2),turn:0,over:false,last:null,flipped:[],msg:'',pending:true,human:0}}
+  const P=settings.players,n=settings.size['m'+P];
+  return {n,players:[...Array(P).keys()],b:startBoard(n,P),turn:0,over:false,last:null,flipped:[],msg:'',pending:true};
+}
+const sqI=(n,s)=>(+s.slice(1)-1)*n+(s.charCodeAt(0)-97);
+
+// ---------- state ----------
+let G,hist=[],pv=null,anim=null,resetArm=0,thinking=false,thinkToken=0,startMsg='';
+let pz=null,ls=null;
+const gameKey=()=>play()==='cpu'?'rv:game:cpu':'rv:game:multi'+settings.players;
+function load(){
+  cancelThink();pv=null;anim=null;
+  if(play()==='puzzle'){pz={idx:0,status:'play',solved:{},hint:false,...(store.get('rv:puzzle',null)||{})};if(!PUZZLES[pz.idx])pz.idx=0;loadPuzzle(pz.idx)}
+  else if(play()==='lesson'){ls={li:0,step:0,done:false,choice:{},wrong:0,msg:'',...(store.get('rv:lesson',null)||{})};if(!LESSONS[ls.li])ls={li:0,step:0,done:false,choice:{},wrong:0,msg:''};buildLesson()}
+  else{const g=store.get(gameKey(),null);if(g&&g.G){G=g.G;hist=g.hist||[]}else{G=newGame();hist=[]}}
+}
+function save(){
+  if(play()==='puzzle')store.set('rv:puzzle',{idx:pz.idx,solved:pz.solved});
+  else if(play()==='lesson')store.set('rv:lesson',{li:ls.li,step:ls.step,done:ls.done,choice:ls.choice});
+  else store.set(gameKey(),{G,hist:hist.slice(-80)});
+}
+function advance(){ // move the turn on, handling passes and the end of the game
+  const nt=E.nextTurn(G.b,G.n,G.players,G.turn);
+  if(!nt){G.over=true;G.msg='';return}
+  G.msg=nt.passed.length?nt.passed.map(p=>NAMES[p]).join('と')+'は おける ところが ないので パス':'';
+  G.turn=nt.p;
+}
+function put(i){ // place for G.turn, remember what flipped for the animation
+  const f=E.flipsAt(G.b,G.n,i,G.turn);
+  hist.push(JSON.stringify(G));
+  G.b=E.place(G.b,i,G.turn,f);G.last=i;G.flipped=f;anim={i,f:new Set(f)};
+  return f;
+}
+
+// ---------- computer ----------
+let worker=null;
+try{
+  const src=`const E=(${reversiEngine.toString()})();onmessage=e=>{const d=e.data;let i=-1;try{i=d.multi?E.greedyMulti(d.b,d.n,d.players,d.me,d.opts):E.search(d.b,d.n,d.me,d.op,d.opts)}catch(err){}postMessage({token:d.token,i})};`;
+  worker=new Worker(URL.createObjectURL(new Blob([src],{type:'text/javascript'})));
+  worker.onmessage=e=>onCpu(e.data.token,e.data.i);
+  worker.onerror=()=>{worker=null};
+}catch(e){worker=null}
+let thinkStart=0;
+function cancelThink(){thinkToken++;thinking=false}
+const seatIsCpu=p=>play()==='cpu'?p!==G.human:play()==='multi'&&settings.seats[p]==='c';
+function cpuTurn(){return isGame()&&!G.pending&&!G.over&&seatIsCpu(G.turn)}
+function maybeCpu(){
+  if(!cpuTurn()||thinking)return;
+  thinking=true;thinkStart=Date.now();const token=++thinkToken;
+  const L=LEVELS[settings.level],multi=G.players.length>2,me=G.turn;
+  const opts=multi?L.multi:{...L.two,exact:settings.level===2&&G.n===6?14:L.two.exact};
+  const msg={token,b:G.b,n:G.n,players:G.players,me,op:1-me,opts,multi};
+  if(worker)worker.postMessage(msg);
+  else setTimeout(()=>{let i=-1;try{i=multi?E.greedyMulti(msg.b,msg.n,msg.players,me,opts):E.search(msg.b,msg.n,me,1-me,opts)}catch(e){}onCpu(token,i)},50);
+  render();
+}
+function onCpu(token,i){
+  if(token!==thinkToken)return;
+  setTimeout(()=>{if(token!==thinkToken)return;thinking=false;if(i<0){render();return}commit(i)},Math.max(0,650-(Date.now()-thinkStart)));
+}
+function commit(i){put(i);advance();pv=null;resetArm=0;save();render();maybeCpu()}
+function undo(){
+  if(!hist.length||!isGame())return;
+  cancelThink();G=JSON.parse(hist.pop());
+  while(hist.length&&seatIsCpu(G.turn))G=JSON.parse(hist.pop());
+  pv=null;anim=null;save();render();maybeCpu();
+}
+
+// ---------- もんだい ----------
+function loadPuzzle(i){
+  const P=PUZZLES[i];
+  G={n:P.n,players:[0,1],b:[...P.b].map(ch=>ch==='B'?0:ch==='W'?1:-1),turn:0,over:false,last:null,flipped:[],msg:''};
+  hist=[];pz.idx=i;pz.status='play';pz.hint=false;pz.flips=0;
+}
+function gotoPuzzle(i){cancelThink();pv=null;anim=null;loadPuzzle(i);save();render()}
+function puzzleMove(i){
+  const P=PUZZLES[pz.idx],f=put(i);pz.flips=f.length;pz.hint=false;
+  if(i!==P.a){pz.status='ng';render();return}
+  advance();
+  if(P.k==='win'){pz.status='auto';render();autoPlay();return}
+  pz.status='ok';pz.solved[pz.idx]=1;save();render();
+}
+function autoPlay(){ // both sides play perfectly to the end
+  const tok=++thinkToken;
+  const step=()=>{
+    if(tok!==thinkToken||play()!=='puzzle')return;
+    if(G.over){pz.status='ok';pz.solved[pz.idx]=1;save();render();return}
+    const me=G.turn,i=E.search(G.b,G.n,me,1-me,{depth:1,time:3000,noise:0,exact:64});
+    if(i>=0){put(i);advance()}else advance();
+    render();setTimeout(step,500);
+  };
+  setTimeout(step,600);
+}
+function puzzleRetry(hint){if(hist.length)G=JSON.parse(hist.pop());pz.status='play';pz.hint=!!hint;anim=null;render()}
+
+// ---------- おけいこ ----------
+const curLesson=()=>LESSONS[ls.li], curStep=()=>curLesson().steps[ls.step];
+function buildLesson(){
+  const L=curLesson(),cur=L.steps[ls.step],n=6;
+  const b=new Array(n*n).fill(-1);
+  if(L.setup)for(const [q,c] of Object.entries(L.setup.b))b[sqI(n,q)]=c==='B'?0:1;
+  G={n,players:[0,1],b:L.setup?b:startBoard(n,2),turn:0,over:false,last:null,flipped:[],msg:''};hist=[];
+  const upto=ls.step+(cur.mv&&(!cur.q||ls.done)?1:0);
+  for(let k=0;k<upto;k++){
+    const st=L.steps[k];if(!st.mv)continue;
+    let who=G.turn,s=st.mv;
+    if(s.includes(':')){who=s[0]==='B'?0:1;s=s.slice(2)}
+    G.turn=who;
+    if(s==='pass'){G.turn=1-who;G.msg=NAMES[who]+'は おける ところが ないので パス';continue}
+    let i;
+    if(s==='?')i=ls.choice[k];
+    else if(s==='auto'){const ms=E.movesFor(G.b,n,who);ms.sort((x,y)=>y.f.length-x.f.length||x.i-y.i);i=ms[0]&&ms[0].i}
+    else i=sqI(n,s);
+    if(i==null)continue;
+    const f=E.flipsAt(G.b,n,i,who);G.b=E.place(G.b,i,who,f);G.last=i;G.flipped=f;G.msg='';G.turn=1-who;
+    if(k===upto-1)anim={i,f:new Set(f)};
+  }
+  if(cur.q&&!ls.done)G.turn=0;
+}
+function lessonMove(i){
+  const st=curStep();
+  if(st.mv!=='?'&&i!==sqI(6,st.mv)){ls.wrong++;ls.msg='ちがうよ。ひかっている ところを 見てね。';render();return}
+  if(st.mv==='?')ls.choice[ls.step]=i;
+  ls.done=true;ls.wrong=0;ls.msg='';buildLesson();save();render();
+}
+function lessonGo(d){
+  const L=curLesson(),cur=curStep();
+  if(d>0){
+    if(cur.q&&!ls.done)return;
+    if(ls.step<L.steps.length-1){ls.step++;ls.done=false}
+    else if(ls.li<LESSONS.length-1){ls.li++;ls.step=0;ls.done=false;ls.choice={}}
+    else return;
+  }else{if(ls.step>0){ls.step--;ls.done=false}else return}
+  ls.wrong=0;ls.msg='';anim=null;buildLesson();
+  if(d<0)anim=null;
+  save();render();
+}
+function gotoLesson(i){ls={li:i,step:0,done:false,choice:{},wrong:0,msg:''};anim=null;buildLesson();save();render()}
+
+// ---------- rendering ----------
+const $=id=>document.getElementById(id);
+function btn(label,cls,fn,disabled){const b=document.createElement('button');b.type='button';if(cls)b.className=cls;b.innerHTML=label;b.onclick=fn;if(disabled)b.disabled=true;return b}
+function seg(el,items,active,onPick){el.innerHTML='';for(const [k,l,s] of items){const b=btn(s?`${l}<small>${s}</small>`:l,'',()=>onPick(k));b.setAttribute('aria-pressed',String(k)===String(active));el.appendChild(b)}}
+const disc=c=>`<span class="disc c${c}"></span>`;
+let lay={w:0,h:0,n:0,cell:0};
+function layout(){
+  const st=$('stage').getBoundingClientRect(),w=Math.round(st.width),h=Math.round(st.height);
+  if(!(lay.cell&&lay.n===G.n&&lay.w===w&&lay.h===h)){
+    lay={w,h,n:G.n,cell:Math.max(20,Math.floor(Math.min((w-16)/G.n,(h-16)/G.n,120)))};
+  }
+  document.documentElement.style.setProperty('--cell',lay.cell+'px');
+  return lay.cell;
+}
+function canAct(){
+  if(play()==='puzzle')return pz.status==='play';
+  if(play()==='lesson'){const st=curStep();return !!(st.q&&!ls.done)}
+  return !G.pending&&!G.over&&!seatIsCpu(G.turn);
+}
+function showDots(){
+  if(!canAct())return false;
+  if(play()==='lesson'){const st=curStep();return !st.nohint||ls.wrong>0}
+  return settings.hints;
+}
+function render(){
+  const p=play(),game=isGame();
+  seg($('plays'),PLAYS,p,k=>{if(k===p)return;save();settings.play=k;saveSettings();load();render();maybeCpu()});
+  const o1=$('opt1'),o2=$('opt2');
+  if(p==='multi'){
+    o1.hidden=false;seg(o1,[[2,'2にん'],[3,'3にん'],[4,'4にん']],settings.players,k=>{if(k===settings.players)return;save();settings.players=k;saveSettings();load();render();maybeCpu()});
+    const P=settings.players,sizes=P===2?[6,8]:[8,10];
+    o2.hidden=false;seg(o2,sizes.map(s=>[s,`${s}×${s}`]),settings.size['m'+P],k=>{if(k===settings.size['m'+P])return;settings.size['m'+P]=k;saveSettings();cancelThink();G=newGame();hist=[];save();render()});
+  }else if(p==='cpu'){
+    o1.hidden=false;seg(o1,LEVELS.map((L,i)=>[i,L.name,'']),settings.level,k=>{if(k===settings.level)return;settings.level=k;saveSettings();cancelThink();render();maybeCpu()});
+    o2.hidden=false;seg(o2,[[6,'6×6'],[8,'8×8']],settings.size.cpu,k=>{if(k===settings.size.cpu)return;settings.size.cpu=k;saveSettings();cancelThink();G=newGame();hist=[];save();render()});
+  }else{o1.hidden=true;o2.hidden=true}
+  $('undo').hidden=!game;$('reset').hidden=!game;
+  $('undo').disabled=!hist.length||(game&&!hist.some(h=>!seatIsCpu(JSON.parse(h).turn)));
+  $('reset').textContent=resetArm?'ほんとうに？':'はじめから';$('reset').classList.toggle('warn',!!resetArm);
+  $('scoreTop').hidden=p!=='multi';
+  renderCoach();
+  const cell=layout(),n=G.n;
+  // board
+  const bd=$('board');bd.style.setProperty('--n',n);bd.innerHTML='';
+  const dots=showDots(),moves=dots?new Map(E.movesFor(G.b,n,G.turn).map(m=>[m.i,m.f.length])):new Map();
+  const hl=new Set();
+  if(p==='lesson'){const st=curStep();(st.hl||[]).forEach(q=>hl.add(sqI(6,q)));if(st.q&&!ls.done&&ls.wrong>0&&st.mv!=='?')hl.add(sqI(6,st.mv))}
+  if(p==='puzzle'&&pz.hint&&pz.status==='play')hl.add(PUZZLES[pz.idx].a);
+  const pvFlip=pv?new Set(pv.f):null;
+  for(let i=0;i<n*n;i++){
+    const r=Math.floor(i/n),c=i%n,el=document.createElement('div');
+    let cls='cell';if(c===n-1)cls+=' lc';if(r===n-1)cls+=' lr';
+    if(G.last===i)cls+=' last';
+    if(hl.has(i))cls+=' hint';
+    const v=G.b[i];
+    if(v>=0){const d=document.createElement('span');d.className='disc c'+v+(anim&&anim.i===i?' drop':'')+(anim&&anim.f.has(i)?' flip':'');el.appendChild(d)}
+    else if(pv&&pv.i===i){const d=document.createElement('span');d.className='disc ghost c'+G.turn;el.appendChild(d)}
+    else if(moves.has(i)){cls+=' can';el.dataset.n=settings.showFlips?moves.get(i):''}
+    if(pvFlip&&pvFlip.has(i))cls+=' willflip';
+    el.className=cls;el.onclick=()=>tap(i);bd.appendChild(el);
+  }
+  if(n>=8)for(const [a,b2] of [[2,2],[2,n-2],[n-2,2],[n-2,n-2]]){const s=document.createElement('span');s.className='star';s.style.left=(a*cell)+'px';s.style.top=(b2*cell)+'px';bd.appendChild(s)}
+  anim=null;
+  // disc counts
+  const cnt=E.counts(G.b);
+  for(const [id,mid] of [['chipsBot','msgBot'],['chipsTop','msgTop']]){
+    const box=$(id);box.innerHTML='';
+    for(const pl of G.players){
+      const on=!G.over&&!G.pending&&G.turn===pl&&(p!=='lesson')&&(p!=='puzzle'||pz.status!=='ok');
+      let nm=NAMES[pl];
+      if(p==='cpu')nm+=pl===G.human?'（あなた）':'（コンピュータ）';
+      if(p==='multi'&&settings.seats[pl]==='c')nm+='（コンピュータ）';
+      const ch=document.createElement('div');ch.className='chip'+(on?' on':'');
+      ch.innerHTML=`${disc(pl)}<b>${cnt[pl]}</b><span class="nm">${nm}</span>`;box.appendChild(ch);
+    }
+    let m=G.msg||'';
+    if(thinking)m='かんがえちゅう';
+    else if(!m&&game&&!G.over&&!G.pending)m=NAMES[G.turn]+'の ばん';
+    const me=$(mid);me.textContent=m;me.classList.toggle('think',thinking);
+  }
+  // overlays
+  const old=$('stage').querySelector('.ov');if(old)old.remove();
+  if(game&&G.pending)showStart();
+  else if(game&&G.over)showOver();
+  else if(p==='puzzle'&&(pz.status==='ok'||pz.status==='ng'))showPuzzleResult();
+}
+function renderCoach(){
+  const co=$('coach'),p=play();
+  co.hidden=!(p==='puzzle'||p==='lesson');if(co.hidden)return;
+  const title=$('ctitle'),chips=$('cchips'),text=$('ctext'),bt=$('cbtns');
+  chips.innerHTML='';bt.innerHTML='';text.innerHTML='';
+  if(p==='puzzle'){
+    const P=PUZZLES[pz.idx];
+    title.textContent=`もんだい ${pz.idx+1}：${KIND[P.k].t}`;
+    PUZZLES.forEach((q,i)=>chips.appendChild(btn(String(i+1),(i===pz.idx?'cur':'')+(pz.solved[i]?' ok':''),()=>gotoPuzzle(i))));
+    let t=KIND[P.k].q+`（くろの ばん・${P.n}×${P.n}）`;
+    if(pz.status==='auto')t='いいね！ さいごまで すすめて みよう…';
+    if(pz.hint)t+=' ヒント：ひかっている ところに おいてみよう。';
+    text.append(t);
+    bt.append(btn('ヒント','',()=>{pz.hint=true;render()},pz.status!=='play'||pz.hint),btn('さいしょから','',()=>gotoPuzzle(pz.idx)),
+      btn('◀ まえ','',()=>gotoPuzzle(pz.idx-1),pz.idx===0),btn('つぎ ▶','go',()=>gotoPuzzle(pz.idx+1),pz.idx>=PUZZLES.length-1));
+  }else{
+    const L=curLesson(),st=curStep();
+    title.textContent=`${L.title}（${ls.step+1}/${L.steps.length}）`;
+    LESSONS.forEach((q,i)=>chips.appendChild(btn(q.title,i===ls.li?'cur':'',()=>gotoLesson(i))));
+    text.append(st.q&&ls.done?st.done:st.t);
+    if(st.q&&!ls.done){const s=document.createElement('strong');s.className='todo';s.textContent=' ← おいてみよう';text.appendChild(s)}
+    if(ls.msg){const w=document.createElement('span');w.className='warn';w.textContent=' '+ls.msg;text.appendChild(w)}
+    const last=ls.step===L.steps.length-1,lastL=ls.li===LESSONS.length-1;
+    bt.append(btn('◀ もどる','',()=>lessonGo(-1),ls.step===0),
+      btn(last?(lastL?'おしまい':'つぎの おけいこ ▶'):'つぎへ ▶','go',()=>lessonGo(1),(st.q&&!ls.done)||(last&&lastL)));
+  }
+}
+function overlay(){const ov=document.createElement('div');ov.className='ov';$('stage').appendChild(ov);return ov}
+function card(ov,html){const c=document.createElement('div');c.className='card';c.innerHTML=html;ov.appendChild(c);return c}
+function showStart(){
+  const ov=overlay();
+  if(startMsg){card(ov,`<div class="big">🎲</div><h2>${startMsg}</h2>`);return}
+  const bt=document.createElement('div');bt.className='btns';
+  if(play()==='cpu'){
+    const c=card(ov,'<h2>どっちの いろで あそぶ？</h2><p>くろが さきに うつよ</p>');
+    bt.append(btn(`${disc(0)}くろ（さき）`,'',()=>startCpu(0)),btn(`${disc(1)}しろ（あと）`,'',()=>startCpu(1)),
+      btn('🎲 ランダム','sub',()=>{const h=Math.random()<.5?0:1,t=G;startMsg=`あなたは ${NAMES[h]}！`;render();setTimeout(()=>{startMsg='';if(G===t)startCpu(h);else render()},1300)}));
+    c.appendChild(bt);
+  }else{
+    const c=card(ov,'<h2>だれから はじめる？</h2><p>さきに うつ いろを えらんでね</p>');
+    for(const pl of G.players)bt.append(btn(`${disc(pl)}${NAMES[pl]}から`,'',()=>startMulti(pl)));
+    bt.append(btn('🎲 ランダム','sub',()=>{const f=G.players[Math.floor(Math.random()*G.players.length)],t=G;startMsg=`${NAMES[f]}から はじめるよ！`;render();setTimeout(()=>{startMsg='';if(G===t)startMulti(f);else render()},1300)}));
+    c.appendChild(bt);
+  }
+}
+function startCpu(h){
+  G.human=h;G.pending=false;G.turn=0;
+  const n=G.n,corners=[0,n*n-1,n-1,n*n-n];
+  for(let k=0;k<settings.handicap;k++)if(G.b[corners[k]]===-1)G.b[corners[k]]=h; // ハンデ: あなたの いしを かどに
+  save();render();maybeCpu();
+}
+function startMulti(f){G.pending=false;G.turn=f;save();render();maybeCpu()}
+function showOver(){
+  const ov=overlay(),cnt=E.counts(G.b),order=[...G.players].sort((a,b)=>cnt[b]-cnt[a]);
+  const top=cnt[order[0]],winners=order.filter(p=>cnt[p]===top);
+  let big='🎉',h;
+  if(winners.length>1)h='ひきわけ！';
+  else if(play()==='cpu'){const you=winners[0]===G.human;h=you?'あなたの かち！':'コンピュータの かち';big=you?'🎉':'🤖'}
+  else h=`${NAMES[winners[0]]}の かち！`;
+  const rows=order.map(p=>`<div>${disc(p)}<span>${NAMES[p]}</span><b>${cnt[p]}</b></div>`).join('');
+  const c=card(ov,`<div class="big">${big}</div><h2>${h}</h2><div class="rank">${rows}</div>`);
+  const bt=document.createElement('div');bt.className='btns';
+  bt.append(btn('もういちど','',()=>{cancelThink();G=newGame();hist=[];save();render()}),btn('↶ まった','sub',undo));
+  c.appendChild(bt);
+}
+function showPuzzleResult(){
+  const ov=overlay(),P=PUZZLES[pz.idx],cnt=E.counts(G.b);
+  const bt=document.createElement('div');bt.className='btns';let c;
+  if(pz.status==='ok'){
+    const msg={corner:'かどを とったね！ かどの いしは もう ひっくりかえされないよ。',most:`${pz.flips}こ ひっくりかえせたね！`,
+      pass:'しろは おける ところが ないので パス！ もう いちど くろの ばんだよ。',win:`くろ ${cnt[0]} − しろ ${cnt[1]} で かち！`}[P.k];
+    c=card(ov,`<div class="big">🎉</div><h2>せいかい！</h2><p>${msg}</p>`);
+    if(pz.idx<PUZZLES.length-1)bt.append(btn('つぎの もんだい','',()=>gotoPuzzle(pz.idx+1)));
+    bt.append(btn('もういちど とく','sub',()=>gotoPuzzle(pz.idx)));
+  }else{
+    const msg={corner:'そこは かどじゃ ないよ。すみっこを よく 見てね。',most:`${pz.flips}こ ひっくりかえせたけど、もっと たくさん ひっくりかえせる ところが あるよ。`,
+      pass:'しろは まだ おける ところが あるみたい。',win:'その手だと、さいごに かてないよ。'}[P.k];
+    c=card(ov,`<div class="big">🤔</div><h2>ざんねん…</h2><p>${msg}</p>`);
+    bt.append(btn('もういちど','',()=>puzzleRetry(false)),btn('ヒントを見る','sub',()=>puzzleRetry(true)));
+  }
+  c.appendChild(bt);
+}
+
+// ---------- input ----------
+function tap(i){
+  wake();
+  if(!canAct())return;
+  const f=E.flipsAt(G.b,G.n,i,G.turn);
+  if(!f.length){
+    if(play()==='lesson'&&G.b[i]===-1){ls.wrong++;ls.msg='そこは あいての いしを はさめないから おけないよ。';render()}
+    else if(pv){pv=null;render()}
+    return;
+  }
+  if(settings.preview&&isGame()&&!(pv&&pv.i===i)){pv={i,f};render();return} // 1かいめ: どれが ひっくりかえるか 見せる
+  pv=null;
+  if(play()==='puzzle')return puzzleMove(i);
+  if(play()==='lesson')return lessonMove(i);
+  commit(i);
+}
+$('undo').onclick=undo;
+$('reset').onclick=()=>{
+  if(!resetArm){resetArm=setTimeout(()=>{resetArm=0;render()},3000);render();return}
+  clearTimeout(resetArm);resetArm=0;cancelThink();G=newGame();hist=[];pv=null;save();render();
+};
+
+// ---------- settings ----------
+$('gear').onclick=openSettings;
+function opt(type,name,checked,label,note,onchange){
+  const l=document.createElement('label');l.className='opt';
+  l.innerHTML=`<input type="${type}" name="${name}" ${checked?'checked':''}><span>${label}${note?`<small>${note}</small>`:''}</span>`;
+  l.querySelector('input').onchange=e=>onchange(e.target.checked);return l;
+}
+function openSettings(){
+  const sh=$('sheet');sh.innerHTML='';
+  const head=document.createElement('div');head.className='head';head.innerHTML='<h2>せってい</h2>';
+  head.appendChild(btn('とじる','close',closeSettings));sh.appendChild(head);
+  const h=t=>{const e=document.createElement('h3');e.textContent=t;sh.appendChild(e)};
+  h('おてつだい');
+  sh.appendChild(opt('checkbox','hints',settings.hints,'おけるところを ひからせる','いしを おける マスに 黄色い 丸が 出ます。',v=>{settings.hints=v;saveSettings();render()}));
+  sh.appendChild(opt('checkbox','flips',settings.showFlips,'ひっくりかえる かずも 出す','黄色い 丸の 中に、おいたら いくつ ひっくりかえるかを 出します。',v=>{settings.showFlips=v;saveSettings();render()}));
+  sh.appendChild(opt('checkbox','pv',settings.preview,'おく前に たしかめる（2かい タップで おく）','1かいめの タップで、ひっくりかえる いしが 光ります。もういちど 同じ ところを タップすると おきます。',v=>{settings.preview=v;pv=null;saveSettings();render()}));
+  h('ハンデ（コンピュータたいせん）');
+  const row=document.createElement('div');row.className='rowopts';
+  [[0,'なし'],[1,'かど 1つ'],[2,'かど 2つ']].forEach(([k,l])=>row.appendChild(opt('radio','hc',settings.handicap===k,l,'',()=>{settings.handicap=k;saveSettings()})));
+  sh.appendChild(row);
+  const n1=document.createElement('p');n1.className='rules';n1.textContent='はじめる ときに、あなたの いしを かどに おいた じょうたいで はじまります（つぎの ゲームから）。';sh.appendChild(n1);
+  h('コンピュータに まかせる いろ（みんなで）');
+  const row2=document.createElement('div');row2.className='rowopts';
+  NAMES.forEach((nm,k)=>row2.appendChild(opt('checkbox','seat'+k,settings.seats[k]==='c',`${disc(k)} ${nm}`,'',v=>{settings.seats[k]=v?'c':'h';saveSettings();render();maybeCpu()})));
+  sh.appendChild(row2);
+  const n2=document.createElement('p');n2.className='rules';n2.textContent='3にん・4にんで 人数が たりない ときに、その いろを コンピュータが うちます。強さは「コンピュータ」で えらんだ 強さに なります。';sh.appendChild(n2);
+  h('ルール');
+  const ul=document.createElement('ul');ul.className='rules';
+  for(const t of ['あいての いしを じぶんの いしで はさむと、ひっくりかえって じぶんの いろに なります。はさめる ところにしか おけません。',
+    'おける ところが ない ときは パス。だれも おけなくなったら おしまいで、いしが いちばん おおい 人の かちです。',
+    '3にん・4にん：じぶん いがいの いしは、いろが まざっていても まとめて はさめます。3にんの ときは まん中に だれのでもない はいいろの いしが 1つ あり、はさめば じぶんの いろに なります。',
+    'もんだい：どれも こたえが 1つだけに きまる ことを プログラムで たしかめてあります。'])
+    {const li=document.createElement('li');li.textContent=t;ul.appendChild(li)}
+  sh.appendChild(ul);
+  $('modal').hidden=false;
+}
+function closeSettings(){$('modal').hidden=true}
+$('modal').onclick=e=>{if(e.target.id==='modal')closeSettings()};
+
+// ---------- misc ----------
+let lock=null;
+function wake(){if(lock||!navigator.wakeLock)return;navigator.wakeLock.request('screen').then(l=>{lock=l;l.addEventListener('release',()=>lock=null)}).catch(()=>{})}
+document.addEventListener('gesturestart',e=>e.preventDefault(),{passive:false});
+document.addEventListener('dblclick',e=>e.preventDefault(),{passive:false});
+let rt;window.addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(render,80)});
+load();render();maybeCpu();
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{lay.cell=0;render()});
+if(window.ResizeObserver){let lw=0,lh=0;new ResizeObserver(es=>{const r=es[0].contentRect,w=Math.round(r.width),h=Math.round(r.height);if(w===lw&&h===lh)return;lw=w;lh=h;if(w!==lay.w||h!==lay.h){anim=null;render()}}).observe($('stage'))}
+})();
+</script>
+
+<script>
+if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('../sw.js').catch(()=>{}))}
+</script>
+</body>
+</html>

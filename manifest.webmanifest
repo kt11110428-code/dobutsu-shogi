@@ -1,6 +1,6 @@
 {
-  "name": "どうぶつしょうぎ盤",
-  "short_name": "どうぶつしょうぎ",
+  "name": "おうちの盤あそび",
+  "short_name": "盤あそび",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

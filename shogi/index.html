@@ -1,0 +1,1071 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#23392d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="盤あそび">
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="apple-touch-icon" href="../icon-180.png">
+<link rel="icon" href="../icon-192.png">
+<style>
+#app{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+a.brand{color:inherit;text-decoration:none;display:flex;align-items:center;gap:8px}
+a.brand .hm{font-size:13px;font-weight:700;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18)}
+</style>
+<title>どうぶつしょうぎ盤</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap">
+<style>
+:root{
+  color-scheme: dark;
+  --forest:#23392d; --forest2:#2f4a3a; --cream:#fff6e3; --muted:#b9c9b6;
+  --wood:#f1ddb0; --wood2:#e6cc93; --line:#b98f55;
+  --p0:#3f9a5b; --p0soft:rgba(63,154,91,.22);
+  --p1:#e07b39; --p1soft:rgba(224,123,57,.22);
+  --hi:#ffe36e; --ink:#4a3521;
+  --font:"Zen Maru Gothic","Hiragino Maru Gothic ProN","Hiragino Sans",sans-serif;
+}
+[hidden]{display:none!important}
+*,*::before,*::after{box-sizing:border-box}
+img{max-width:100%}
+html,body{height:100%}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+*{touch-action:manipulation}
+body{margin:0;background:var(--forest);color:var(--cream);font-family:var(--font);
+  -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;overflow:hidden;touch-action:manipulation}
+button{font-family:inherit;cursor:pointer}
+button:focus-visible{outline:3px solid var(--hi);outline-offset:2px}
+#app{height:100%;display:flex;flex-direction:column;padding-inline:16px;box-sizing:border-box}
+
+/* toolbar */
+.bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding-block:8px;border-bottom:1px solid rgba(255,255,255,.08)}
+.brand{font-weight:900;font-size:15px;letter-spacing:.04em;margin-right:auto;white-space:nowrap}
+.modes{display:flex;background:rgba(0,0,0,.25);border-radius:12px;padding:3px;gap:3px}
+.modes button{border:0;background:transparent;color:var(--muted);font-weight:700;font-size:14px;padding:8px 12px;border-radius:9px;line-height:1.15;text-align:center}
+.modes button small{display:block;font-size:11px;font-weight:500;opacity:.8;font-variant-numeric:tabular-nums}
+.modes button[aria-pressed="true"]{background:var(--wood);color:var(--ink)}
+#plays button{display:flex;align-items:center;justify-content:center;gap:5px;white-space:nowrap}
+#plays button small{display:inline}
+.tools{display:flex;gap:6px}
+.tools button{border:1px solid rgba(255,255,255,.18);background:var(--forest2);color:var(--cream);font-weight:700;font-size:14px;padding:9px 12px;border-radius:10px}
+.tools button:disabled{opacity:.35}
+.tools button.warn{background:#8c3b2a;border-color:#c55}
+
+/* player sides */
+.side{display:flex;align-items:center;gap:12px;padding-block:6px;height:calc(var(--hs) + 22px);flex:none}
+.side.top{transform:rotate(180deg)}
+#app.cpu .side.top{transform:none}
+.pill.think::after{content:"";display:inline-block;width:1.2em;text-align:left;animation:dots 1.2s steps(4) infinite}
+@keyframes dots{0%{content:""}25%{content:"・"}50%{content:"・・"}75%{content:"・・・"}}
+.modes .lbl{align-self:center;font-size:12px;font-weight:700;color:var(--muted);padding:0 4px 0 8px}
+.who{flex:none;display:flex;flex-direction:column;gap:3px;align-items:flex-start;width:190px}
+.pill{white-space:nowrap;font-weight:900;font-size:15px;padding:6px 12px;border-radius:999px;background:rgba(255,255,255,.08);color:var(--muted);transition:background .2s,color .2s}
+.side.p0 .pill.on{background:var(--p0);color:#fff;box-shadow:0 0 0 4px var(--p0soft)}
+.side.p1 .pill.on{background:var(--p1);color:#fff;box-shadow:0 0 0 4px var(--p1soft)}
+.msg{font-size:13px;font-weight:700;color:var(--hi);height:1.3em;white-space:nowrap}
+.hand{flex:1;min-width:0;display:flex;gap:8px;flex-wrap:nowrap;align-items:center;height:100%;overflow-x:auto;overflow-y:hidden;padding-inline:4px}
+.hand .empty{color:rgba(255,255,255,.28);font-size:13px}
+.hslot{flex:none;position:relative;border:0;padding:3px;background:transparent;border-radius:12px}
+.hslot.sel{background:var(--hi)}
+.cnt{position:absolute;right:-4px;bottom:-4px;background:var(--cream);color:var(--ink);font-weight:900;font-size:13px;border-radius:999px;padding:1px 7px;font-variant-numeric:tabular-nums;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+
+/* board */
+.stage{flex:1;min-height:0;display:grid;place-items:center;position:relative;overflow:hidden}
+.board{display:grid;grid-template-columns:repeat(var(--cols),var(--cell));grid-auto-rows:var(--cell);
+  background:var(--wood);border:6px solid #8a6437;border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.cell{position:relative;border-right:1.5px solid var(--line);border-bottom:1.5px solid var(--line);display:grid;place-items:center;box-sizing:border-box}
+.cell.lc{border-right:0}.cell.lr{border-bottom:0}
+.cell.z0{background:linear-gradient(var(--p0soft),var(--p0soft))}
+.cell.z1{background:linear-gradient(var(--p1soft),var(--p1soft))}
+.cell.last::after{content:"";position:absolute;inset:3px;border:3px solid rgba(255,255,255,.75);border-radius:8px;pointer-events:none}
+.cell.tgt::before{content:"";position:absolute;width:34%;height:34%;border-radius:50%;background:var(--hi);box-shadow:0 0 0 4px rgba(255,227,110,.35);z-index:2;pointer-events:none}
+.cell.tgt.cap::before{width:auto;height:auto;inset:4px;background:transparent;border:5px solid var(--hi);border-radius:12px;box-shadow:none}
+.cell.sel{background:rgba(255,227,110,.55)}
+
+/* piece tile */
+.pc{--s:60px;width:var(--s);height:var(--s);position:relative;border-radius:calc(var(--s)*.16);
+  background:var(--tint,#f5eee0);box-shadow:inset 0 0 0 calc(var(--s)*.05) var(--own),0 2px 4px rgba(0,0,0,.28);color:var(--ink);box-sizing:border-box;flex:none}
+.pc.c0{--own:var(--p0)}.pc.c1{--own:var(--p1)}
+.pc.flip{transform:rotate(180deg)}
+.pc.pro{background:linear-gradient(160deg,#ffe0e4,var(--tint))}
+.pc .art{position:absolute;left:50%;top:41%;width:calc(var(--s)*.52);height:calc(var(--s)*.52);transform:translate(-50%,-50%)}
+.pc .art svg{width:100%;height:100%;display:block;overflow:visible}
+.pc.tiny .art{top:50%;width:calc(var(--s)*.64);height:calc(var(--s)*.64)}
+.pc .emo{position:absolute;left:0;right:0;top:44%;transform:translateY(-50%);text-align:center;font-size:calc(var(--s)*.46);line-height:1}
+.pc .nm{position:absolute;left:0;right:0;top:69%;text-align:center;font-weight:900;font-size:calc(var(--s)*.12);line-height:1;white-space:nowrap;letter-spacing:-.02em}
+.pc.pro .nm{color:#c0392b}
+.pc.tiny .nm{display:none}
+.pc.tiny .emo{top:50%}
+.dot{position:absolute;width:calc(var(--s)*.085);height:calc(var(--s)*.085);border-radius:50%;background:#7a4a24;transform:translate(-50%,-50%)}
+.pc.pro .dot{background:#c0392b}
+.arrows{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+.arrows polygon{fill:#7a4a24;stroke:#7a4a24;stroke-width:3;stroke-linejoin:round}
+.pc.pro .arrows polygon{fill:#c0392b;stroke:#c0392b}
+.pc.custom{background:#fff;overflow:hidden}
+.pc.custom img{width:100%;height:100%;object-fit:contain;display:block;border-radius:inherit}
+.pc.just{animation:pop .35s ease-out}
+.pc.flip.just{animation:popf .35s ease-out}
+@keyframes pop{0%{transform:scale(1.18)}100%{transform:scale(1)}}
+@keyframes popf{0%{transform:rotate(180deg) scale(1.18)}100%{transform:rotate(180deg) scale(1)}}
+@media (prefers-reduced-motion:reduce){.pc.just,.pc.flip.just{animation:none}}
+
+/* coach panel (つめしょうぎ・おけいこ) — fixed height so the board never jumps */
+.coach{flex:none;background:var(--cream);color:var(--ink);border-radius:14px;padding:8px 12px;margin-block:4px;display:flex;flex-direction:column;gap:4px}
+.crow{display:flex;gap:10px;align-items:center;min-width:0}
+.ctitle{font-weight:900;font-size:16px;white-space:nowrap}
+.chips{display:flex;gap:6px;overflow-x:auto;flex:1;min-width:0;padding-block:2px}
+.chips button{flex:none;border:0;border-radius:999px;padding:6px 11px;font-weight:700;font-size:13px;background:#eadbb8;color:var(--ink);white-space:nowrap}
+.chips button.cur{background:var(--p0);color:#fff}
+.chips button.ok::after{content:" ✓"}
+.ctext{font-size:15px;font-weight:700;line-height:1.45;height:4.4em;overflow-y:auto}
+.ctext small{display:block;font-size:12px;font-weight:500;color:#7a5a3a;margin-top:2px}
+.ctext .warn{color:#c0392b}
+.ctext .todo{color:var(--p0)}
+.cbtns{flex:none;display:flex;gap:6px}
+.cbtns button{flex:none;border:0;border-radius:10px;padding:8px 12px;font-weight:900;font-size:14px;background:var(--forest2);color:var(--cream)}
+.cbtns button.go{background:var(--p0);color:#fff}
+.cbtns button:disabled{opacity:.35}
+.cell.hint{box-shadow:inset 0 0 0 4px #ff6b5a;animation:hintp 1.1s ease-in-out infinite}
+@keyframes hintp{50%{box-shadow:inset 0 0 0 4px rgba(255,107,90,.25)}}
+.hslot.hint{background:#ff6b5a}
+@media (prefers-reduced-motion:reduce){.cell.hint{animation:none}}
+
+/* overlays */
+.ov{position:absolute;inset:0;display:grid;place-items:center;background:rgba(20,32,25,.62);z-index:10;border-radius:12px}
+.card{background:var(--cream);color:var(--ink);border-radius:18px;padding:20px 24px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.4);max-width:calc(100% - 32px);box-sizing:border-box}
+.card.flip{transform:rotate(180deg)}
+.card h2{margin:0 0 6px;font-size:28px;font-weight:900;text-wrap:balance}
+.card p{margin:0 0 14px;font-size:16px;font-weight:700;color:#7a5a3a}
+.choices{display:flex;gap:16px;justify-content:center}
+.choices button{border:3px solid transparent;background:#f3e6c8;border-radius:16px;padding:10px 12px;display:flex;flex-direction:column;align-items:center;gap:8px;font-weight:900;font-size:15px;color:var(--ink)}
+.choices button:hover{border-color:var(--hi)}
+.btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.btns button{border:0;border-radius:12px;padding:12px 20px;font-weight:900;font-size:16px;background:var(--p0);color:#fff}
+.btns button.sub{background:#d9c9a6;color:var(--ink)}
+.btns button.p1b{background:var(--p1)}
+.winner-big{font-size:64px;line-height:1;margin-bottom:6px}
+
+/* settings */
+.modal{position:fixed;inset:0;background:rgba(10,20,14,.7);z-index:50;display:grid;place-items:center;padding:16px}
+.sheet{background:var(--cream);color:var(--ink);border-radius:18px;width:min(720px,100%);max-height:calc(100% - 32px);overflow:auto;padding:20px 22px;box-sizing:border-box;-webkit-user-select:text;user-select:text}
+.sheet h3{margin:18px 0 8px;font-size:17px;font-weight:900}
+.sheet h3:first-of-type{margin-top:4px}
+.sheet .head{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.sheet .head h2{margin:0;font-size:20px;font-weight:900}
+.sheet .close{border:0;background:var(--forest2);color:var(--cream);font-weight:900;border-radius:10px;padding:10px 16px;font-size:15px}
+.sheet label.opt{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:12px;background:#f3e6c8;margin-bottom:6px;font-weight:700;font-size:15px;line-height:1.45}
+.sheet label.opt small{display:block;font-weight:500;color:#7a5a3a;font-size:13px}
+.sheet input[type=radio],.sheet input[type=checkbox]{width:20px;height:20px;margin-top:2px;flex:none;accent-color:var(--p0)}
+.note{font-size:13px;line-height:1.65;color:#6b5238;margin:0 0 10px;max-width:65ch}
+.imgs{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.imgrow{display:flex;gap:10px;align-items:center;background:#f3e6c8;border-radius:12px;padding:8px}
+.imgrow .meta{display:flex;flex-direction:column;gap:5px;font-weight:900;font-size:13px;min-width:0}
+.imgrow .meta button,.imgrow .meta label{border:0;border-radius:8px;padding:6px 8px;font-weight:700;font-size:12px;background:var(--forest2);color:var(--cream);text-align:center;cursor:pointer}
+.imgrow .meta button.sub{background:#d9c9a6;color:var(--ink)}
+.imgrow input[type=file]{position:absolute;width:1px;height:1px;opacity:0}
+.rules{margin:0;padding-left:1.2em;font-size:14px;line-height:1.7;max-width:65ch}
+</style>
+</head>
+<body>
+
+
+<div id="app">
+  <div class="bar">
+    <a class="brand" href="../"><span class="hm">◀ ホーム</span>どうぶつしょうぎ盤</a>
+    <div class="modes" id="modes"></div>
+    <div class="modes" id="plays"></div>
+    <div class="modes" id="levels" hidden></div>
+    <div class="tools">
+      <button id="undo" type="button">↶ まった</button>
+      <button id="reset" type="button">はじめから</button>
+      <button id="gear" type="button">せってい</button>
+    </div>
+  </div>
+  <div class="coach" id="coach" hidden>
+    <div class="crow"><div class="ctitle" id="ctitle"></div><div class="chips" id="chips"></div><div class="cbtns" id="cbtns"></div></div>
+    <div class="ctext" id="ctext"></div>
+  </div>
+  <div class="side top p1" id="side1"><div class="who"><div class="pill" id="pill1">オレンジ</div><div class="msg" id="msg1"></div></div><div class="hand" id="hand1"></div></div>
+  <div class="stage" id="stage"><div class="board" id="board"></div></div>
+  <div class="side p0" id="side0"><div class="who"><div class="pill" id="pill0">みどり</div><div class="msg" id="msg0"></div></div><div class="hand" id="hand0"></div></div>
+</div>
+<div class="modal" id="modal" hidden><div class="sheet" id="sheet"></div></div>
+
+<script>
+// ================= engine (shared with the CPU worker) =================
+function engineFactory(){
+const ORTHO=[[0,-1],[-1,0],[1,0],[0,1]], DIAG=[[-1,-1],[1,-1],[-1,1],[1,1]], KING=[...ORTHO,...DIAG];
+const GOLD=[[0,-1],[-1,-1],[1,-1],[-1,0],[1,0],[0,1]], SILVER=[[0,-1],[-1,-1],[1,-1],[-1,1],[1,1]];
+function moveSet(t,p){
+  switch(t){
+    case 'lion': return {s:KING,l:[]};
+    case 'kirinS': return {s:ORTHO,l:[]};
+    case 'zouS': return {s:DIAG,l:[]};
+    case 'hiyoko': return {s:p?GOLD:[[0,-1]],l:[]};
+    case 'inu': return {s:GOLD,l:[]};
+    case 'neko': return {s:p?GOLD:SILVER,l:[]};
+    case 'usagi': return {s:p?GOLD:[[-1,-2],[1,-2]],l:[]};
+    case 'inoshishi': return p?{s:GOLD,l:[]}:{s:[],l:[[0,-1]]};
+    case 'kirin': return {s:p?DIAG:[],l:ORTHO};
+    case 'zou': return {s:p?ORTHO:[],l:DIAG};
+  }
+}
+const rowOf=(M,i)=>Math.floor(i/M.cols), colOf=(M,i)=>i%M.cols;
+function targets(S,M,i){
+  const pc=S.board[i], r=rowOf(M,i), c=colOf(M,i), f=pc.o===0?1:-1, ms=moveSet(pc.t,pc.p), out=[];
+  const inb=(rr,cc)=>rr>=0&&rr<M.rows&&cc>=0&&cc<M.cols;
+  for(const [dx,dy] of ms.s){const nr=r+dy*f,nc=c+dx*f;if(!inb(nr,nc))continue;const q=S.board[nr*M.cols+nc];if(!q||q.o!==pc.o)out.push(nr*M.cols+nc)}
+  for(const [dx,dy] of ms.l){let nr=r+dy*f,nc=c+dx*f;while(inb(nr,nc)){const j=nr*M.cols+nc,q=S.board[j];if(!q){out.push(j)}else{if(q.o!==pc.o)out.push(j);break}nr+=dy*f;nc+=dx*f}}
+  return out;
+}
+function attacked(S,M,sq,by){for(let i=0;i<S.board.length;i++){const q=S.board[i];if(q&&q.o===by&&targets(S,M,i).includes(sq))return true}return false}
+function findLion(S,o){return S.board.findIndex(q=>q&&q.o===o&&q.t==='lion')}
+function inCheck(S,M,o){const L=findLion(S,o);return L>=0&&attacked(S,M,L,1-o)}
+function distToEnd(M,o,r){return o===0?r:M.rows-1-r}
+function promoChoices(M,pc,fr,tr){
+  if(pc.p||!M.promotable.includes(pc.t))return [false];
+  const z=r=>pc.o===0?r<M.zone:r>=M.rows-M.zone;
+  if(!(z(fr)||z(tr)))return [false];
+  if(M.auto)return [true];
+  const d=distToEnd(M,pc.o,tr);
+  if((pc.t==='hiyoko'||pc.t==='inoshishi')&&d===0)return [true];
+  if(pc.t==='usagi'&&d<=1)return [true];
+  return [false,true];
+}
+function apply(S,M,m){
+  const b=S.board.slice(), h=[{...S.hands[0]},{...S.hands[1]}], o=S.turn;
+  if(m.drop){b[m.to]={t:m.drop,o,p:false};if(!--h[o][m.drop])delete h[o][m.drop]}
+  else{const pc=b[m.from],cap=b[m.to];if(cap&&cap.t!=='lion')h[o][cap.t]=(h[o][cap.t]||0)+1;b[m.to]={t:pc.t,o:pc.o,p:pc.p||!!m.promote};b[m.from]=null}
+  return {board:b,hands:h,turn:1-o,winner:null,winText:'',last:{from:m.drop?null:m.from,to:m.to}};
+}
+function dropOK(S,M,o,t,j,uchifu){
+  if(S.board[j])return false;
+  const d=distToEnd(M,o,rowOf(M,j));
+  if(M.deadDrop){if((t==='hiyoko'||t==='inoshishi')&&d===0)return false;if(t==='usagi'&&d<=1)return false}
+  if(M.nifu&&t==='hiyoko'){const c=colOf(M,j);for(let r=0;r<M.rows;r++){const q=S.board[r*M.cols+c];if(q&&q.o===o&&q.t==='hiyoko'&&!q.p)return false}}
+  if(uchifu&&M.uchifu&&t==='hiyoko'){
+    const ahead=j+(o===0?-M.cols:M.cols), L=findLion(S,1-o);
+    if(ahead===L){const S2=apply(S,M,{drop:t,to:j});if(!hasEscape(S2,M))return false}
+  }
+  return true;
+}
+function allMoves(S,M,uchifu){
+  const o=S.turn,out=[];
+  for(let i=0;i<S.board.length;i++){const pc=S.board[i];if(!pc||pc.o!==o)continue;
+    for(const j of targets(S,M,i))for(const pr of promoChoices(M,pc,rowOf(M,i),rowOf(M,j)))out.push({from:i,to:j,promote:pr})}
+  for(const t in S.hands[o])for(let j=0;j<S.board.length;j++)if(dropOK(S,M,o,t,j,uchifu))out.push({drop:t,to:j});
+  return out;
+}
+function hasEscape(S,M){const o=S.turn;for(const m of allMoves(S,M,false))if(!inCheck(apply(S,M,m),M,o))return true;return false}
+function legalMoves(S,M,strict){let ms=allMoves(S,M,true);if(strict){const o=S.turn;ms=ms.filter(m=>!inCheck(apply(S,M,m),M,o))}return ms}
+function evaluate(S,M,mover,cap,strict){
+  const opp=1-mover;
+  if(cap&&cap.t==='lion'){S.winner=mover;S.winText='ライオンをつかまえた！';return}
+  if(M.try){
+    const L=findLion(S,mover);
+    if(L>=0&&distToEnd(M,mover,rowOf(M,L))===0&&!attacked(S,M,L,opp)){S.winner=mover;S.winText='トライせいこう！';return}
+    const L2=findLion(S,opp);
+    if(L2>=0&&distToEnd(M,opp,rowOf(M,L2))===0){S.winner=opp;S.winText='トライせいこう！';return}
+  }
+  if(strict&&legalMoves(S,M,true).length===0){S.winner=mover;S.winText=inCheck(S,M,opp)?'つみ！':'うごける駒がない！'}
+}
+
+// ---------- CPU search ----------
+const VAL={lion:0,kirinS:500,zouS:500,hiyoko:100,inu:600,neko:500,usagi:400,inoshishi:350,kirin:1000,zou:850};
+const PVAL={hiyoko:550,neko:600,usagi:600,inoshishi:600,kirin:1250,zou:1100};
+const WIN=1000000, TIMEOUT={};
+function pieceVal(q){return q.p?PVAL[q.t]:VAL[q.t]}
+function score(S,M){ // from side-to-move perspective
+  let s=0;
+  for(let i=0;i<S.board.length;i++){const q=S.board[i];if(!q)continue;
+    let v=pieceVal(q);
+    const adv=M.rows-1-distToEnd(M,q.o,rowOf(M,i)); // rows advanced
+    if(q.t==='hiyoko'&&!q.p)v+=adv*8;
+    if(q.t==='lion'&&M.try)v+=adv*40;
+    s+=q.o===S.turn?v:-v}
+  for(const o of [0,1])for(const t in S.hands[o]){const v=Math.round(VAL[t]*1.12)*S.hands[o][t];s+=o===S.turn?v:-v}
+  return s;
+}
+function searchMoves(S,M){
+  const ms=allMoves(S,M,true), seen=new Set(), out=[];
+  for(const m of ms){ // when promotion is optional, only look at promoting
+    if(!m.drop){const k=m.from+':'+m.to;if(seen.has(k))continue;
+      const alt=ms.find(x=>!x.drop&&x.from===m.from&&x.to===m.to&&x.promote);if(alt){seen.add(k);out.push(alt);continue}}
+    out.push(m)}
+  for(const m of out){const v=m.drop?null:S.board[m.to];m._o=(v?(v.t==='lion'?1e7:pieceVal(v)*10-pieceVal(S.board[m.from])):0)+(m.promote?300:0)-(m.drop?5:0)}
+  out.sort((a,b)=>b._o-a._o);
+  return out;
+}
+function search(S,M,opts){
+  const deadline=Date.now()+opts.time; let nodes=0;
+  const tick=()=>{if((++nodes&511)===0&&Date.now()>deadline)throw TIMEOUT};
+  const lionOnGoal=(S2,o)=>{const L=findLion(S2,o);return L>=0&&distToEnd(M,o,rowOf(M,L))===0};
+  // score after `me` played m (S2 = resulting position, side to move = opponent)
+  function afterMove(S2,me,ply,depth,alpha,beta,cap){
+    if(cap&&cap.t==='lion')return WIN-ply;
+    if(M.try){
+      if(lionOnGoal(S2,1-me))return -(WIN-ply);             // opponent's try survived my move
+      if(lionOnGoal(S2,me)&&!attacked(S2,M,findLion(S2,me),1-me))return WIN-ply;
+    }
+    return -negamax(S2,depth-1,-beta,-alpha,ply+1);
+  }
+  function quies(S,alpha,beta,ply,qd){
+    tick();
+    let stand=score(S,M);
+    if(stand>=beta)return stand; if(stand>alpha)alpha=stand;
+    if(qd<=0)return stand;
+    const caps=[];
+    for(let i=0;i<S.board.length;i++){const q=S.board[i];if(!q||q.o!==S.turn)continue;
+      for(const j of targets(S,M,i)){const v=S.board[j];if(!v)continue;
+        if(v.t==='lion')return WIN-ply;
+        const pr=promoChoices(M,q,rowOf(M,i),rowOf(M,j));caps.push({from:i,to:j,promote:pr[pr.length-1],_o:pieceVal(v)*10-pieceVal(q)})}}
+    caps.sort((a,b)=>b._o-a._o);
+    for(const m of caps){const S2=apply(S,M,m);const sc=-quies(S2,-beta,-alpha,ply+1,qd-1);
+      if(sc>=beta)return sc; if(sc>alpha)alpha=sc}
+    return alpha;
+  }
+  function negamax(S,depth,alpha,beta,ply){
+    tick();
+    if(depth<=0)return quies(S,alpha,beta,ply,4);
+    const ms=searchMoves(S,M); if(!ms.length)return -(WIN-ply);
+    let best=-Infinity;
+    for(const m of ms){
+      const cap=m.drop?null:S.board[m.to];
+      const sc=afterMove(apply(S,M,m),S.turn,ply,depth,alpha,beta,cap);
+      if(sc>best)best=sc; if(sc>alpha)alpha=sc; if(alpha>=beta)break;
+    }
+    return best;
+  }
+  let root=legalMoves(S,M,opts.strict);
+  if(!root.length)return null;
+  // tidy optional promotions at root too
+  root=root.filter(m=>m.drop||m.promote||!root.some(x=>!x.drop&&x.from===m.from&&x.to===m.to&&x.promote));
+  let scored=root.map(m=>({m,s:0}));
+  for(let d=1;d<=opts.depth;d++){
+    try{
+      const res=[];let alpha=-Infinity;
+      for(const {m} of scored){
+        const cap=m.drop?null:S.board[m.to];
+        const sc=afterMove(apply(S,M,m),S.turn,0,d,-Infinity,Infinity,cap);
+        res.push({m,s:sc});
+      }
+      res.sort((a,b)=>b.s-a.s);scored=res;
+      if(res[0].s>=WIN-50)break;
+    }catch(e){if(e!==TIMEOUT)throw e;break}
+    if(Date.now()>deadline)break;
+  }
+  const noisy=scored.map(x=>({m:x.m,s:x.s+(Math.random()*2-1)*opts.noise}));
+  noisy.sort((a,b)=>b.s-a.s);
+  const m=noisy[0].m;
+  return {from:m.from,to:m.to,drop:m.drop,promote:!!m.promote};
+}
+
+// ---------- tsume (mate) solver: attacker = side to move, always strict rules ----------
+function checkMoves(S,M){const d=1-S.turn;return legalMoves(S,M,true).filter(m=>inCheck(apply(S,M,m),M,d))}
+function tryEscape(S3,M,def){if(!M.try)return false;const L=findLion(S3,def);return L>=0&&distToEnd(M,def,rowOf(M,L))===0&&!attacked(S3,M,L,1-def)}
+// does attacker move m force mate within n attacker moves (n=1: mate now)?
+function moveMates(S,M,m,n){
+  const S2=apply(S,M,m);if(!inCheck(S2,M,S2.turn))return false;
+  const ds=legalMoves(S2,M,true);if(!ds.length)return true;if(n<=1)return false;
+  for(const d of ds){const S3=apply(S2,M,d);if(tryEscape(S3,M,S2.turn))return false;if(!matesIn(S3,M,n-1))return false}
+  return true;
+}
+function matesIn(S,M,n){for(const m of checkMoves(S,M))if(moveMates(S,M,m,n))return true;return false}
+// defender reply that holds out longest (S2 = defender to move, attacker has n moves left)
+function bestDefense(S2,M,n){
+  const ds=legalMoves(S2,M,true);let best=null,bestK=-1;
+  for(const d of ds){const S3=apply(S2,M,d);let k=1;while(k<n&&!matesIn(S3,M,k))k++;if(k>bestK){bestK=k;best=d}}
+  return best;
+}
+return {moveSet,rowOf,colOf,targets,attacked,findLion,inCheck,distToEnd,promoChoices,apply,dropOK,allMoves,legalMoves,evaluate,search,checkMoves,moveMates,matesIn,bestDefense};
+}
+
+// ================= app =================
+(()=>{
+const E=engineFactory();
+const {moveSet,rowOf,colOf,inCheck,apply,legalMoves,evaluate}=E;
+
+const SP={
+  lion:{e:'🦁',n:'ライオン',tint:'#f8cfae'},
+  kirinS:{e:'🦒',n:'きりん',tint:'#e6cdef'}, kirin:{e:'🦒',n:'きりん',pn:'きりん',tint:'#e6cdef'},
+  zouS:{e:'🐘',n:'ぞう',tint:'#d5daf4'}, zou:{e:'🐘',n:'ぞう',pn:'ぞう',tint:'#d5daf4'},
+  hiyoko:{e:'🐤',pe:'🐔',n:'ひよこ',pn:'にわとり',tint:'#eaf3b8'},
+  inu:{e:'🐶',n:'いぬ',tint:'#f2dcbd'},
+  neko:{e:'🐱',n:'ねこ',pn:'ねこ',tint:'#d6ecd3'},
+  usagi:{e:'🐰',n:'うさぎ',pn:'うさぎ',tint:'#f5e0ea'},
+  inoshishi:{e:'🐗',n:'いのしし',pn:'いのしし',tint:'#e4d4c2'},
+};
+function pieceName(t,p){const s=SP[t];if(!p)return s.n;return t==='hiyoko'?'にわとり':'★'+s.pn}
+function pieceLongName(t,p){if(!p)return SP[t].n;return t==='hiyoko'?'にわとり':'パワーアップ'+SP[t].pn}
+
+// ---------- original piece illustrations (viewBox 0 0 100 100) ----------
+const OL='stroke="#4a3121" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"';
+const OLT=w=>`stroke="#4a3121" stroke-width="${w}" stroke-linejoin="round" stroke-linecap="round"`;
+const EYE=(x,y)=>`<circle cx="${x}" cy="${y}" r="3.8" fill="#3b2a1e"/><circle cx="${x+1.3}" cy="${y-1.3}" r="1.2" fill="#fff"/>`;
+const CHEEK=(x,y)=>`<ellipse cx="${x}" cy="${y}" rx="5" ry="3" fill="#f28c8c" opacity=".55"/>`;
+const MOUTH=(y)=>`<path d="M50,${y} Q46,${y+6} 42,${y+4} M50,${y} Q54,${y+6} 58,${y+4}" fill="none" ${OL}/>`;
+const ART={
+  lion:(()=>{let m='';for(let k=0;k<12;k++){const a=k*Math.PI/6;m+=`<circle cx="${(50+34*Math.cos(a)).toFixed(1)}" cy="${(52+34*Math.sin(a)).toFixed(1)}" r="13" fill="#e58a2e" ${OL}/>`}
+    return m+`<circle cx="50" cy="52" r="36" fill="#e58a2e"/>`+
+    `<circle cx="31" cy="33" r="8" fill="#ffd9a0" ${OL}/><circle cx="69" cy="33" r="8" fill="#ffd9a0" ${OL}/>`+
+    `<circle cx="50" cy="54" r="26" fill="#ffd9a0" ${OL}/>`+EYE(41,50)+EYE(59,50)+CHEEK(35,60)+CHEEK(65,60)+
+    `<path d="M45,58 Q50,55 55,58 Q50,64 45,58Z" fill="#7a3f22"/>`+MOUTH(62)})(),
+  kirin:`<path d="M40,31 L36,13 M60,31 L64,13" fill="none" stroke="#4a3121" stroke-width="4" stroke-linecap="round"/>`+
+    `<circle cx="36" cy="11" r="5.5" fill="#a0622d" ${OL}/><circle cx="64" cy="11" r="5.5" fill="#a0622d" ${OL}/>`+
+    `<ellipse cx="23" cy="40" rx="12" ry="6" transform="rotate(-25 23 40)" fill="#f4c95d" ${OL}/><ellipse cx="77" cy="40" rx="12" ry="6" transform="rotate(25 77 40)" fill="#f4c95d" ${OL}/>`+
+    `<ellipse cx="50" cy="50" rx="23" ry="25" fill="#f4c95d" ${OL}/>`+
+    `<ellipse cx="43" cy="34" rx="5" ry="4" fill="#c98a3a"/><ellipse cx="58" cy="32" rx="4" ry="3" fill="#c98a3a"/><ellipse cx="68" cy="47" rx="3" ry="4" fill="#c98a3a"/><ellipse cx="31" cy="50" rx="2.5" ry="3.5" fill="#c98a3a"/>`+
+    `<ellipse cx="50" cy="70" rx="18" ry="13" fill="#f8e2a6" ${OL}/>`+EYE(41,49)+EYE(59,49)+
+    `<circle cx="45" cy="68" r="1.9" fill="#7a4a24"/><circle cx="55" cy="68" r="1.9" fill="#7a4a24"/><path d="M44,75 Q50,79 56,75" fill="none" ${OL}/>`,
+  zou:`<circle cx="22" cy="47" r="20" fill="#a9b8e0" ${OL}/><circle cx="22" cy="47" r="11" fill="#f3c1cf"/>`+
+    `<circle cx="78" cy="47" r="20" fill="#a9b8e0" ${OL}/><circle cx="78" cy="47" r="11" fill="#f3c1cf"/>`+
+    `<circle cx="50" cy="46" r="26" fill="#bac7ea" ${OL}/>`+
+    `<path d="M50,60 Q50,80 61,86" fill="none" stroke="#4a3121" stroke-width="14" stroke-linecap="round"/><path d="M50,60 Q50,80 61,86" fill="none" stroke="#bac7ea" stroke-width="9" stroke-linecap="round"/>`+
+    `<path d="M46,70 L54,70 M47,76 L55,76" stroke="#8e9cc6" stroke-width="2" stroke-linecap="round"/>`+
+    EYE(40,44)+EYE(60,44)+CHEEK(34,54)+CHEEK(66,54),
+  hiyoko:`<path d="M45,21 Q46,9 51,16 Q55,8 57,21 Z" fill="#f7e14b" ${OL}/>`+
+    `<circle cx="50" cy="54" r="34" fill="#f7e14b" ${OL}/>`+
+    `<ellipse cx="17" cy="62" rx="7" ry="11" transform="rotate(25 17 62)" fill="#efcc2c" ${OL}/><ellipse cx="83" cy="62" rx="7" ry="11" transform="rotate(-25 83 62)" fill="#efcc2c" ${OL}/>`+
+    EYE(39,48)+EYE(61,48)+CHEEK(31,58)+CHEEK(69,58)+
+    `<path d="M44,56 L56,56 L50,64 Z" fill="#f39a2b" ${OL}/>`,
+  niwatori:`<circle cx="41" cy="20" r="7" fill="#e0463c" ${OL}/><circle cx="59" cy="20" r="7" fill="#e0463c" ${OL}/><circle cx="50" cy="15" r="8.5" fill="#e0463c" ${OL}/>`+
+    `<circle cx="50" cy="53" r="32" fill="#fffaf0" ${OL}/>`+
+    `<ellipse cx="19" cy="62" rx="7" ry="11" transform="rotate(25 19 62)" fill="#f1e9da" ${OL}/><ellipse cx="81" cy="62" rx="7" ry="11" transform="rotate(-25 81 62)" fill="#f1e9da" ${OL}/>`+
+    EYE(39,46)+EYE(61,46)+CHEEK(31,56)+CHEEK(69,56)+
+    `<ellipse cx="50" cy="69" rx="5" ry="7" fill="#e0463c" ${OL}/><path d="M43,54 L57,54 L50,63 Z" fill="#f39a2b" ${OL}/>`,
+  inu:`<circle cx="50" cy="52" r="29" fill="#eab77c" ${OL}/>`+
+    `<ellipse cx="60" cy="45" rx="9" ry="8" fill="#c98a4f"/>`+
+    `<ellipse cx="22" cy="50" rx="10" ry="19" transform="rotate(18 22 50)" fill="#9a6231" ${OL}/><ellipse cx="78" cy="50" rx="10" ry="19" transform="rotate(-18 78 50)" fill="#9a6231" ${OL}/>`+
+    `<ellipse cx="50" cy="65" rx="15" ry="11" fill="#fbe7cc" ${OL}/>`+EYE(40,47)+EYE(60,46)+
+    `<ellipse cx="50" cy="60" rx="5.5" ry="4" fill="#3b2a1e"/>`+MOUTH(64),
+  neko:`<path d="M25,42 L27,13 L47,28 Z" fill="#d8cfc4" ${OL}/><path d="M75,42 L73,13 L53,28 Z" fill="#d8cfc4" ${OL}/>`+
+    `<path d="M29,33 L30,20 L39,27 Z M71,33 L70,20 L61,27 Z" fill="#f3b3bf"/>`+
+    `<ellipse cx="50" cy="54" rx="30" ry="27" fill="#d8cfc4" ${OL}/>`+
+    `<path d="M44,31 L44,38 M50,29 L50,37 M56,31 L56,38" stroke="#9d9080" stroke-width="3" stroke-linecap="round"/>`+
+    EYE(40,50)+EYE(60,50)+CHEEK(34,60)+CHEEK(66,60)+
+    `<path d="M47,58 L53,58 L50,61.5 Z" fill="#f08a9a" ${OLT(1.5)}/>`+MOUTH(61)+
+    `<path d="M29,57 L14,54 M29,62 L14,64 M71,57 L86,54 M71,62 L86,64" stroke="#4a3121" stroke-width="1.8" stroke-linecap="round"/>`,
+  usagi:`<ellipse cx="38" cy="26" rx="8.5" ry="22" transform="rotate(-8 38 26)" fill="#fdfaf6" ${OL}/><ellipse cx="38" cy="28" rx="4" ry="14" transform="rotate(-8 38 28)" fill="#f6b9c8"/>`+
+    `<ellipse cx="62" cy="26" rx="8.5" ry="22" transform="rotate(8 62 26)" fill="#fdfaf6" ${OL}/><ellipse cx="62" cy="28" rx="4" ry="14" transform="rotate(8 62 28)" fill="#f6b9c8"/>`+
+    `<circle cx="50" cy="62" r="26" fill="#fdfaf6" ${OL}/>`+EYE(41,58)+EYE(59,58)+CHEEK(35,68)+CHEEK(65,68)+
+    `<ellipse cx="50" cy="66" rx="3.2" ry="2.5" fill="#f08a9a"/>`+MOUTH(68),
+  inoshishi:`<path d="M43,26 L46,16 L50,23 L54,16 L57,26 Z" fill="#5e3c22" ${OL}/>`+
+    `<path d="M22,36 L24,15 L41,27 Z" fill="#7d5230" ${OL}/><path d="M78,36 L76,15 L59,27 Z" fill="#7d5230" ${OL}/>`+
+    `<ellipse cx="50" cy="52" rx="31" ry="28" fill="#9b6b43" ${OL}/>`+
+    `<path d="M37,72 Q32,64 38,60 L41,66 Z M63,72 Q68,64 62,60 L59,66 Z" fill="#fffaf0" ${OLT(1.8)}/>`+
+    `<ellipse cx="50" cy="66" rx="15" ry="11" fill="#e7a98c" ${OL}/>`+
+    `<ellipse cx="45" cy="66" rx="2.4" ry="3.6" fill="#7a3f22"/><ellipse cx="55" cy="66" rx="2.4" ry="3.6" fill="#7a3f22"/>`+
+    EYE(39,46)+EYE(61,46),
+};
+const CROWN=`<path d="M37,6 L41,-6 L46,1 L50,-9 L54,1 L59,-6 L63,6 Z" fill="#f5c542" ${OLT(2)}/>`;
+function artSVG(t,p){
+  const key=t==='hiyoko'&&p?'niwatori':t.replace(/S$/,'');
+  return `<svg viewBox="0 0 100 100" aria-hidden="true">${ART[key]}${p&&t!=='hiyoko'?CROWN:''}</svg>`;
+}
+const HAND_ORDER=['kirin','kirinS','zou','zouS','inu','neko','usagi','inoshishi','hiyoko'];
+
+const MODES={
+  doko:{title:'どこでも',size:'3×4',cols:3,rows:4,zone:1,promotable:['hiyoko'],auto:true,try:true,nifu:false,deadDrop:false,uchifu:false,
+    setup:['kirinS1 lion1 zouS1','. hiyoko1 .','. hiyoko0 .','zouS0 lion0 kirinS0'],
+    rules:['ライオンをつかまえたら勝ち。','ライオンが相手のいちばん奥のマスに入って、次に取られなければ「トライ」で勝ち。','ひよこは相手のいちばん奥に入ると、にわとりになる。','取った駒は自分の番に好きな空きマスに置ける（置いたひよこはひよこのまま）。']},
+  goro:{title:'ごろごろ',size:'5×6',cols:5,rows:6,zone:2,promotable:['hiyoko','neko'],auto:false,try:false,nifu:true,deadDrop:true,uchifu:true,
+    setup:['neko1 inu1 lion1 inu1 neko1','. . . . .','. hiyoko1 hiyoko1 hiyoko1 .','. hiyoko0 hiyoko0 hiyoko0 .','. . . . .','neko0 inu0 lion0 inu0 neko0'],
+    rules:['ライオンをつかまえたら勝ち（トライはなし）。','相手側の2段（色のついたマス）に入る・出るときに、ひよこ→にわとり、ねこ→パワーアップねこになれる。','同じたての列にひよこを2ひき置けない（にひよこ）。','ひよこを置いてすぐライオンをつかまえられない形にするのは反則（うちひよこづめ）。','いちばん奥の段にひよこは置けない。']},
+  mori:{title:'おおきな森',size:'9×9',cols:9,rows:9,zone:3,promotable:['hiyoko','neko','usagi','inoshishi','kirin','zou'],auto:false,try:false,nifu:true,deadDrop:true,uchifu:true,
+    setup:['inoshishi1 usagi1 neko1 inu1 lion1 inu1 neko1 usagi1 inoshishi1','. kirin1 . . . . . zou1 .','hiyoko1 hiyoko1 hiyoko1 hiyoko1 hiyoko1 hiyoko1 hiyoko1 hiyoko1 hiyoko1','. . . . . . . . .','. . . . . . . . .','. . . . . . . . .','hiyoko0 hiyoko0 hiyoko0 hiyoko0 hiyoko0 hiyoko0 hiyoko0 hiyoko0 hiyoko0','. zou0 . . . . . kirin0 .','inoshishi0 usagi0 neko0 inu0 lion0 inu0 neko0 usagi0 inoshishi0'],
+    rules:['ルールは本将棋と同じ。ライオン＝王、きりん＝飛車、ぞう＝角、いぬ＝金、ねこ＝銀、うさぎ＝桂、いのしし＝香、ひよこ＝歩。','相手側の3段に入る・出るときにパワーアップできる（いぬ・ライオン以外）。','にひよこ・うちひよこづめ・動けなくなる場所への駒打ちは反則。']},
+};
+const IMG_KEYS={
+  doko:[['lion',0],['kirinS',0],['zouS',0],['hiyoko',0],['hiyoko',1]],
+  goro:[['lion',0],['inu',0],['neko',0],['neko',1],['hiyoko',0],['hiyoko',1]],
+  mori:[['lion',0],['kirin',0],['kirin',1],['zou',0],['zou',1],['inu',0],['neko',0],['neko',1],['usagi',0],['usagi',1],['inoshishi',0],['inoshishi',1],['hiyoko',0],['hiyoko',1]],
+};
+const PLAYS=[['human','ふたりで','たいせん'],['cpu','コンピュータ','たいせん'],['tsume','つめしょうぎ','もんだい'],['lesson','おけいこ','']];
+// search strength per level & board (index 0 = weakest)
+const LEVELS=[
+  {name:'よわい',cfg:{doko:{depth:1,time:400,noise:260},goro:{depth:1,time:400,noise:300},mori:{depth:1,time:500,noise:300}}},
+  {name:'ふつう',cfg:{doko:{depth:3,time:1200,noise:40},goro:{depth:2,time:1500,noise:40},mori:{depth:2,time:2000,noise:40}}},
+  {name:'つよい',cfg:{doko:{depth:8,time:2500,noise:0},goro:{depth:4,time:3000,noise:0},mori:{depth:3,time:4000,noise:0}}},
+];
+// verified puzzles: b = [square index, piece, owner, promoted], h = attacker's hand, n = moves (1 or 3)
+const TSUME={"doko":[{"n":1,"b":[[0,"lion",1,0],[6,"hiyoko",0,1],[7,"zouS",0,0],[8,"hiyoko",1,0]],"h":{}},{"n":1,"b":[[0,"lion",1,0],[4,"hiyoko",1,0],[6,"zouS",0,0],[7,"hiyoko",0,1]],"h":{"kirinS":1}},{"n":1,"b":[[2,"lion",1,0],[4,"kirinS",0,0],[8,"kirinS",0,0]],"h":{}},{"n":1,"b":[[0,"lion",1,0],[1,"zouS",0,0],[7,"hiyoko",0,1]],"h":{"kirinS":1}},{"n":1,"b":[[1,"lion",1,0],[7,"kirinS",0,0],[8,"hiyoko",0,1]],"h":{"hiyoko":1}},{"n":3,"b":[[1,"lion",1,0],[2,"zouS",0,0],[4,"zouS",1,0],[5,"kirinS",0,0],[8,"hiyoko",1,0]],"h":{"kirinS":1}},{"n":3,"b":[[0,"zouS",1,0],[1,"lion",1,0],[5,"hiyoko",1,0],[7,"kirinS",0,0],[8,"hiyoko",0,1]],"h":{"kirinS":1}},{"n":3,"b":[[1,"lion",1,0],[6,"zouS",0,0],[7,"kirinS",0,0],[8,"hiyoko",1,0]],"h":{"kirinS":1}}],"goro":[{"n":1,"b":[[0,"neko",0,0],[5,"lion",1,0],[7,"neko",1,0],[10,"inu",1,0],[22,"hiyoko",0,0]],"h":{"neko":1,"inu":1}},{"n":1,"b":[[4,"lion",1,0],[7,"neko",1,0],[12,"inu",0,0],[16,"inu",0,0]],"h":{"inu":1}},{"n":1,"b":[[1,"hiyoko",0,1],[4,"lion",1,0],[7,"neko",0,0],[9,"hiyoko",1,0]],"h":{"inu":1}},{"n":1,"b":[[2,"lion",1,0],[13,"neko",0,1],[17,"inu",0,0]],"h":{"inu":1,"hiyoko":1}},{"n":1,"b":[[7,"hiyoko",0,0],[9,"lion",1,0],[12,"inu",0,0],[14,"inu",1,0]],"h":{"inu":1}},{"n":1,"b":[[0,"lion",1,0],[10,"inu",1,0],[11,"neko",0,0],[12,"hiyoko",1,0],[17,"hiyoko",0,0]],"h":{"neko":1}},{"n":3,"b":[[0,"inu",1,0],[6,"lion",1,0],[16,"neko",0,0]],"h":{"inu":1,"neko":1}},{"n":3,"b":[[7,"neko",1,0],[9,"lion",1,0],[16,"inu",0,0],[18,"neko",0,1]],"h":{"inu":2}},{"n":3,"b":[[7,"lion",1,0],[17,"neko",0,0]],"h":{"neko":1,"inu":1}},{"n":3,"b":[[7,"lion",1,0],[10,"inu",1,0],[17,"hiyoko",0,0],[18,"inu",0,0]],"h":{"inu":1,"neko":1}}],"mori":[{"n":1,"b":[[0,"lion",1,0],[9,"inu",1,0],[38,"kirin",0,0]],"h":{"kirin":1}},{"n":1,"b":[[3,"lion",1,0],[16,"inu",0,0],[19,"neko",0,0],[22,"neko",0,0]],"h":{"neko":1}},{"n":1,"b":[[7,"lion",1,0],[13,"inu",0,0],[14,"kirin",0,0],[44,"zou",0,0]],"h":{"inu":1,"zou":1}},{"n":1,"b":[[6,"hiyoko",1,0],[8,"lion",1,0],[13,"zou",0,0],[15,"kirin",0,0],[23,"kirin",0,0],[24,"neko",1,0],[26,"usagi",1,0]],"h":{"zou":1,"inu":1}},{"n":1,"b":[[7,"usagi",1,0],[8,"lion",1,0],[24,"usagi",1,0],[41,"zou",0,0]],"h":{"zou":1,"kirin":1}},{"n":1,"b":[[2,"lion",1,0],[4,"kirin",1,0],[21,"inu",0,0]],"h":{"zou":1,"inu":1}},{"n":1,"b":[[3,"zou",0,0],[4,"lion",1,0],[35,"inu",0,0]],"h":{"inu":1,"inoshishi":1}},{"n":3,"b":[[3,"neko",0,0],[6,"lion",1,0],[24,"neko",1,0],[25,"kirin",0,0],[26,"hiyoko",1,0]],"h":{"inu":1,"kirin":1}},{"n":3,"b":[[1,"lion",1,0],[2,"usagi",1,0],[10,"inoshishi",1,0],[11,"inoshishi",1,0],[12,"hiyoko",0,1],[20,"neko",0,0],[32,"hiyoko",0,0]],"h":{}},{"n":3,"b":[[3,"lion",1,0],[18,"usagi",0,0],[24,"hiyoko",0,0],[30,"usagi",0,0]],"h":{"inoshishi":1,"inu":1}},{"n":3,"b":[[11,"zou",0,0],[12,"lion",1,0],[22,"usagi",0,0],[39,"zou",0,1]],"h":{"kirin":1}},{"n":3,"b":[[10,"lion",1,0],[14,"inu",0,0],[20,"kirin",0,0]],"h":{"inu":1,"inoshishi":1}}]};
+// lessons: squares are A1..(letter = column from the left, number = row from the top) on 3×4 / 5×6,
+// and shogi notation (file 1-9 from the right, rank 1-9 from the top) on 9×9.
+// mv: "FROM-TO" ("+" = power up), "piece*TO" = drop, "piece*?" = drop anywhere; q = the child makes this move
+const LESSONS={
+  doko:[
+    {title:'ひよこの とりあい',steps:[
+      {t:'どうぶつしょうぎは、まん中の ひよこどうしが むかいあって はじまります。ひよこは まえに 1マスだけ すすめます。',hl:['B3','B2']},
+      {t:'みどりの ひよこで、オレンジの ひよこを とってみよう！',mv:'B3-B2',q:true,done:'とれたね！ とった駒は「もちごま」になって、じぶんの ばんに あいている マスへ おけます。'},
+      {t:'オレンジは ぞうで とりかえしました。ぞうは ななめに 1マス うごけます。',mv:'C1-B2'},
+      {t:'これで おたがいに ひよこを 1まいずつ もっています。とったり とられたりを よく見て すすめよう。'}]},
+    {title:'トライで かつ',setup:{b:{C2:'lion0',A4:'lion1',A1:'kirinS1'}},steps:[
+      {t:'ライオンが あいての いちばん おくの だんに 入って、つぎに とられなければ「トライ」で かちです。',hl:['A1','B1','C1']},
+      {t:'でも B1 には、きりんが 1マスで とどきます。入ると とられてしまいます。',hl:['A1','B1']},
+      {t:'とられない マスに ライオンを すすめて、トライしよう！',mv:'C2-C1',q:true,done:'トライせいこう！ あいての駒が とどかない マスを えらぶのが コツです。'}]},
+    {title:'もちごまを うつ',setup:{b:{B1:'lion1',B3:'kirinS0',B4:'lion0'},h:[{hiyoko:1},{}]},steps:[
+      {t:'もちごまは、じぶんの ばんに 1手つかって、盤の あいている マスに おけます。'},
+      {t:'もっている ひよこを B2 に おいて、ライオンを ねらってみよう。',mv:'hiyoko*B2',q:true,done:'ひよこは まえに 1マス なので、ライオンを ねらっています。ライオンが ひよこを とると、うしろの きりんに とられてしまいます。'},
+      {t:'このように、もちごまは あいての ライオンの ちかくに うつと つよい ぶきに なります。'}]},
+  ],
+  goro:[
+    {title:'ねこ と いぬ',steps:[
+      {t:'ごろごろどうぶつしょうぎには、ねこ と いぬ が います。',hl:['A6','B6','D6','E6']},
+      {t:'ねこは まえ3つと、うしろの ななめ2つに 1マス。よこ と まうしろには いけません。',hl:['A6','E6']},
+      {t:'いぬは まえ3つと、よこ2つ、まうしろに 1マス。うしろの ななめには いけません。',hl:['B6','D6']},
+      {t:'右はしの ねこを、ななめまえに 1マス すすめてみよう。',mv:'E6-D5',q:true,done:'じょうず！ ねこは ななめに すすめるので、せめるのが とくいです。'},
+      {t:'いぬは よこにも うごけるので、ライオンの そばで まもるのが とくいです。'}]},
+    {title:'パワーアップ',setup:{b:{A1:'lion1',C3:'neko0',C6:'lion0'}},steps:[
+      {t:'あいての じんち（色のついた おくの 2だん）に 入るときや、そこから 出るときに、パワーアップ できます。',hl:['A1','B1','C1','D1','E1','A2','B2','C2','D2','E2']},
+      {t:'ねこを C2 に すすめて、パワーアップさせよう！（「パワーアップ！」を えらんでね）',mv:'C3-C2+',q:true,done:'パワーアップした ねこは、いぬと おなじ うごきに なります。'},
+      {t:'ひよこも パワーアップすると にわとりに なって、いぬと おなじ うごきが できます。'}]},
+    {title:'にひよこは はんそく',setup:{b:{C1:'lion1',B4:'hiyoko0',C6:'lion0'},h:[{hiyoko:1},{}]},steps:[
+      {t:'おなじ たての れつに、じぶんの ひよこを 2まい おくことは できません。これを「にひよこ」と いいます。',hl:['B1','B2','B3','B4','B5','B6']},
+      {t:'もっている ひよこを どこかに おいてみよう。B の れつには おけないよ。',mv:'hiyoko*?',q:true,done:'そのとおり！ いちばん おくの だんにも、ひよこは おけません（うごけなくなるから）。'},
+      {t:'ひよこを うって、すぐに ライオンが にげられなくなる（つみ）のも はんそくです。これを「うちひよこづめ」と いいます。'}]},
+  ],
+  mori:[
+    {title:'ぼうぎん（棒銀）',steps:[
+      {t:'おおきな森は、ほんものの 将棋と おなじ ルールです。有名な せめかた「棒銀（ぼうぎん）」を おぼえよう。ねこが 将棋の「銀」です。',hl:['28','39']},
+      {t:'きりん（飛車）の まえの ひよこを 1マス すすめよう。',mv:'27-26',q:true,done:'いいね！ きりんの まえを あけて、ここから せめていきます。'},
+      {t:'ひよこを もう1マス すすめます。',mv:'26-25'},
+      {t:'つぎは ねこ。3九の ねこを 3八へ すすめよう。',mv:'39-38',q:true,done:'ねこが せめる じゅんびを はじめました。'},
+      {t:'ねこを 2七へ。',mv:'38-27'},
+      {t:'さらに 2六へ。ねこが きりんの まえを まっすぐ すすんでいきます。',mv:'27-26'},
+      {t:'1五へ。ここから ひよこ・ねこ・きりんの 3にんで、2の れつを せめます。',mv:'26-15'},
+      {t:'銀（ねこ）を ぼうのように まっすぐ すすめて せめるので「棒銀」と いいます。じっさいは あいても うごくので、あいての 駒を よく見ながら すすめよう。'}]},
+    {title:'ふなかこい（舟囲い）',steps:[
+      {t:'「かこい」は ライオンを まもる おしろ です。まずは かんたんな「舟囲い（ふなかこい）」を つくってみよう。'},
+      {t:'ぞう（角）の まえの ひよこを すすめて、ぞうの みちを あけます。',mv:'77-76'},
+      {t:'ライオンを 6八へ うごかそう。',mv:'59-68',q:true,done:'ライオンが ひだりへ ひっこしを はじめました。'},
+      {t:'さらに 7八へ。',mv:'68-78'},
+      {t:'右の いぬを 5八へ うごかそう。',mv:'49-58',q:true,done:'できあがり！ ライオンを いぬと ねこで かためた「舟囲い」です。',hl:['78','69','58','79']},
+      {t:'かこいを つくってから せめると、あいてに せめられても ライオンが すぐには つかまりません。'}]},
+    {title:'みのがこい（美濃囲い）',steps:[
+      {t:'こんどは、きりん（飛車）を ひだりに まわす「ふりびしゃ」で よく つかわれる「美濃囲い（みのがこい）」を つくろう。'},
+      {t:'ぞうの まえの ひよこを すすめます。',mv:'77-76'},
+      {t:'となりの ひよこも すすめて、ぞうの みちを とじます。',mv:'67-66'},
+      {t:'きりんを 6八へ まわそう。これを「四間飛車（しけんびしゃ）」と いいます。',mv:'28-68',q:true,done:'きりんが ひだりへ うつりました。'},
+      {t:'ライオンは みぎへ ひっこします。まず 4八へ。',mv:'59-48'},
+      {t:'3八へ。',mv:'48-38'},
+      {t:'2八へ。',mv:'38-28'},
+      {t:'ねこを 3八へ あげます。',mv:'39-38'},
+      {t:'ひだりの いぬを 5八へ うごかそう。',mv:'69-58',q:true,done:'できあがり！ これが「美濃囲い」。よこから せめられても つよい かこいです。',hl:['28','38','49','58']}]},
+  ],
+};
+
+// ---------- storage ----------
+const store={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){return false}},
+  del(k){try{localStorage.removeItem(k)}catch(e){}}};
+let settings=Object.assign({hints:true,play:'human',level:0,strict:{doko:false,goro:false,mori:true}},store.get('ds:settings',{}));
+if(settings.opp){ // settings from the version with separate よわい/ふつう/つよい buttons
+  const old={human:['human',0],weak:['cpu',0],normal:['cpu',1],strong:['cpu',2]}[settings.opp]||['human',0];
+  settings.play=old[0];settings.level=old[1];delete settings.opp;settings.lv3=true;
+}
+if(!settings.lv3){settings.level=Math.max(0,(settings.level||0)-1);settings.lv3=true} // from the short-lived 4-level version
+if(!PLAYS.some(p=>p[0]===settings.play))settings.play='human';
+if(!LEVELS[settings.level])settings.level=0;
+const saveSettings=()=>store.set('ds:settings',settings);
+saveSettings();
+const imgCache={};
+function imgKey(mode,t,p){return 'ds:img:'+mode+':'+t+(p?'+':'')}
+function getImg(mode,t,p){const k=imgKey(mode,t,p);if(!(k in imgCache))imgCache[k]=store.get(k,null);return imgCache[k]}
+
+function newGame(mk){
+  const M=MODES[mk], board=[];
+  for(const row of M.setup) for(const tok of row.split(' ')){
+    if(tok==='.'){board.push(null);continue}
+    board.push({t:tok.slice(0,-1),o:+tok.slice(-1),p:false});
+  }
+  return {board,hands:[{},{}],turn:0,winner:null,winText:'',last:null,pending:true};
+}
+function sqIndex(mk,s){const m=MODES[mk];if(mk==='mori')return (+s[1]-1)*9+(9-(+s[0]));return (+s.slice(1)-1)*m.cols+(s.charCodeAt(0)-65)}
+
+// ---------- app state ----------
+let mode=store.get('ds:mode','doko'); if(!MODES[mode])mode='doko';
+let S,hist,sel=null,moveMap=new Map(),promo=null,justTo=null,resetArm=0;
+let thinking=false,thinkToken=0,startMsg='';
+let tz=null;   // つめしょうぎ: {idx,left,status:'play'|'wait'|'ok'|'ng',solved,hint}
+let ls=null;   // おけいこ: {li,step,done,choice,wrong}
+const M=()=>MODES[mode], play=()=>settings.play;
+const isGame=()=>play()==='human'||play()==='cpu';
+const strict=()=>!!settings.strict[mode], cpuOn=()=>play()==='cpu';
+const strictNow=()=>play()==='tsume'?true:play()==='lesson'?false:strict();
+const names=()=>['みどり',play()==='human'?'オレンジ':play()==='cpu'?'コンピュータ':'あいて'];
+
+function load(){
+  cancelThink();sel=null;promo=null;justTo=null;moveMap=new Map();
+  if(play()==='tsume'){
+    const g=store.get('ds:tsume:'+mode,null)||{};
+    tz={idx:0,left:1,status:'play',solved:{},hint:null,...g};
+    if(!TSUME[mode][tz.idx])tz.idx=0;
+    if(g.S){S=g.S;hist=g.hist||[];if(tz.status==='wait')tz.status='play'}else startPuzzle(tz.idx);
+  }else if(play()==='lesson'){
+    ls={li:0,step:0,done:false,choice:{},wrong:0,...(store.get('ds:lesson:'+mode,null)||{})};
+    if(!LESSONS[mode][ls.li])ls={li:0,step:0,done:false,choice:{},wrong:0};
+    buildLesson();
+  }else{
+    const g=store.get('ds:game:'+mode,null);if(g&&g.S){S=g.S;hist=g.hist||[]}else{S=newGame(mode);hist=[]}
+  }
+}
+function save(){
+  store.set('ds:mode',mode);
+  if(play()==='tsume')store.set('ds:tsume:'+mode,{idx:tz.idx,left:tz.left,status:tz.status,solved:tz.solved,S,hist:hist.slice(-20)});
+  else if(play()==='lesson')store.set('ds:lesson:'+mode,{li:ls.li,step:ls.step,done:ls.done,choice:ls.choice});
+  else store.set('ds:game:'+mode,{S,hist:hist.slice(-120)});
+}
+
+// ---------- CPU worker ----------
+let worker=null;
+try{
+  const src=`const E=(${engineFactory.toString()})();onmessage=e=>{const d=e.data;let m=null;try{m=E.search(d.S,d.M,d.opts)}catch(err){}postMessage({token:d.token,move:m})};`;
+  worker=new Worker(URL.createObjectURL(new Blob([src],{type:'text/javascript'})));
+  worker.onmessage=e=>onCpuMove(e.data.token,e.data.move);
+  worker.onerror=()=>{worker=null};
+}catch(e){worker=null}
+let thinkStart=0;
+function cancelThink(){thinkToken++;thinking=false}
+function maybeCpu(){
+  if(!cpuOn()||S.pending||S.winner!==null||S.turn!==1||thinking)return;
+  thinking=true;thinkStart=Date.now();const token=++thinkToken;
+  const opts=Object.assign({strict:strict()},LEVELS[settings.level].cfg[mode]);
+  const msg={token,S:{board:S.board,hands:S.hands,turn:S.turn},M:M(),opts};
+  if(worker)worker.postMessage(msg);
+  else setTimeout(()=>{let m=null;try{m=E.search(msg.S,msg.M,opts)}catch(e){}onCpuMove(token,m)},50);
+}
+function onCpuMove(token,m){
+  if(token!==thinkToken)return;
+  const wait=Math.max(0,700-(Date.now()-thinkStart));
+  setTimeout(()=>{
+    if(token!==thinkToken)return;
+    thinking=false;
+    if(!m){render();return}
+    commit(m);
+  },wait);
+}
+
+// ---------- つめしょうぎ ----------
+function startPuzzle(i){
+  const P=TSUME[mode][i],m=M(),b=new Array(m.cols*m.rows).fill(null);
+  for(const [k,t,o,p] of P.b)b[k]={t,o,p:!!p};
+  S={board:b,hands:[{...P.h},{}],turn:0,winner:null,winText:'',last:null};hist=[];
+  tz.idx=i;tz.left=P.n===1?1:2;tz.status='play';tz.hint=null;
+}
+function tsumeMove(m){
+  const mm=M(),ok=E.moveMates(S,mm,m,tz.left);
+  hist.push(JSON.stringify(S));S=apply(S,mm,m);justTo=m.to;clearSel();tz.hint=null;
+  if(!ok)tz.status='ng';
+  else if(!legalMoves(S,mm,true).length){tz.status='ok';tz.solved[tz.idx]=1}
+  else{
+    tz.left--;tz.status='wait';const tok=++thinkToken;
+    setTimeout(()=>{if(tok!==thinkToken||play()!=='tsume'||tz.status!=='wait')return;
+      const d=E.bestDefense(S,M(),tz.left);hist.push(JSON.stringify(S));S=apply(S,M(),d);justTo=d.to;tz.status='play';save();render();justTo=null},750);
+  }
+  save();render();justTo=null;
+}
+function tsumeHint(){
+  if(tz.status!=='play')return;
+  tz.hint=E.checkMoves(S,M()).find(m=>E.moveMates(S,M(),m,tz.left))||null;render();
+}
+function tsumeRetry(){ // undo the wrong move
+  if(hist.length)S=JSON.parse(hist.pop());tz.status='play';clearSel();save();render();
+}
+function gotoPuzzle(i){cancelThink();startPuzzle(i);clearSel();save();render()}
+
+// ---------- おけいこ ----------
+function lessonSetup(L){
+  const m=M();
+  if(!L.setup){const g=newGame(mode);delete g.pending;return g}
+  const b=new Array(m.cols*m.rows).fill(null);
+  for(const [q,tok] of Object.entries(L.setup.b))b[sqIndex(mode,q)]={t:tok.slice(0,-1),o:+tok.slice(-1),p:false};
+  const h=L.setup.h||[{},{}];
+  return {board:b,hands:[{...h[0]},{...h[1]}],turn:0,winner:null,winText:'',last:null};
+}
+function parseLessonMove(str,S){
+  if(str.includes('*')){const [t,to]=str.split('*');return {drop:t,to:to==='?'?null:sqIndex(mode,to),owner:0}}
+  const pr=str.endsWith('+'),[a,b]=str.replace('+','').split('-'),from=sqIndex(mode,a);
+  return {from,to:sqIndex(mode,b),promote:pr,owner:S.board[from].o};
+}
+function lessonApply(S,m){return apply({...S,turn:m.owner},M(),{from:m.from,to:m.to,drop:m.drop,promote:m.promote})}
+const curLesson=()=>LESSONS[mode][ls.li], curStep=()=>curLesson().steps[ls.step];
+function buildLesson(){
+  const L=curLesson(),cur=L.steps[ls.step];
+  S=lessonSetup(L);hist=[];
+  const upto=ls.step+(cur.mv&&(!cur.q||ls.done)?1:0);
+  for(let k=0;k<upto;k++){const st=L.steps[k];if(!st.mv)continue;const m=parseLessonMove(st.mv,S);if(m.drop&&m.to==null)m.to=ls.choice[k];if(m.to==null)continue;S=lessonApply(S,m)}
+  if(cur.q&&!ls.done)S.turn=parseLessonMove(cur.mv,S).owner;
+}
+function lessonMove(m){
+  const exp=parseLessonMove(curStep().mv,S);
+  const match=exp.drop?(m.drop===exp.drop&&(exp.to==null||m.to===exp.to)):(!m.drop&&m.from===exp.from&&m.to===exp.to&&!!m.promote===exp.promote);
+  clearSel();
+  if(!match){ls.wrong++;ls.msg=(!m.drop&&m.from===exp.from&&m.to===exp.to)?'「パワーアップ！」を えらんでね。':'ちがうよ。光っている ところを 見てね。';render();return}
+  if(exp.drop&&exp.to==null)ls.choice[ls.step]=m.to;
+  ls.done=true;ls.wrong=0;ls.msg='';justTo=m.to;buildLesson();save();render();justTo=null;
+}
+function lessonGo(d){
+  const L=curLesson(),cur=curStep();
+  if(d>0){
+    if(cur.q&&!ls.done)return;
+    if(ls.step<L.steps.length-1){ls.step++;ls.done=false}
+    else if(ls.li<LESSONS[mode].length-1){ls.li++;ls.step=0;ls.done=false;ls.choice={}}
+    else return;
+  }else{
+    if(ls.step>0){ls.step--;ls.done=false}else return;
+  }
+  ls.wrong=0;ls.msg='';buildLesson();
+  const st=curStep();if(d>0&&st.mv&&!st.q)justTo=S.last?S.last.to:null;
+  clearSel();save();render();justTo=null;
+}
+function gotoLesson(i){ls={li:i,step:0,done:false,choice:{},wrong:0};buildLesson();clearSel();save();render()}
+
+// ---------- rendering ----------
+const $=id=>document.getElementById(id);
+const SVGNS='http://www.w3.org/2000/svg';
+function tile(t,p,colorOwner,size,flip,modeKey){
+  const el=document.createElement('div');
+  el.className='pc c'+colorOwner+(p?' pro':'')+(flip?' flip':'')+(size<54?' tiny':'');
+  el.style.setProperty('--s',size+'px');el.style.setProperty('--tint',SP[t].tint);
+  const img=getImg(modeKey||mode,t,p);
+  if(img){el.classList.add('custom');const im=new Image();im.src=img;im.alt=pieceLongName(t,p);el.appendChild(im);return el}
+  const ms=moveSet(t,p);
+  for(const [dx,dy] of ms.s){const d=document.createElement('i');d.className='dot';
+    if(Math.abs(dy)===2){d.style.left=(50+dx*27)+'%';d.style.top='9%'}else{d.style.left=(50+dx*39)+'%';d.style.top=(50+dy*39)+'%'}
+    el.appendChild(d)}
+  if(ms.l.length){ // long-range directions: arrowheads pointing outward
+    const svg=document.createElementNS(SVGNS,'svg');svg.setAttribute('viewBox','0 0 100 100');svg.setAttribute('class','arrows');svg.setAttribute('aria-hidden','true');
+    for(const [dx,dy] of ms.l){
+      const len=Math.hypot(dx,dy),ux=dx/len,uy=dy/len,diag=dx&&dy;
+      const tip=diag?57:45,base=diag?40:30,hw=diag?12:13;
+      const tx=50+ux*tip,ty=50+uy*tip,bx=50+ux*base,by=50+uy*base,px=-uy*hw,py=ux*hw;
+      const pg=document.createElementNS(SVGNS,'polygon');
+      pg.setAttribute('points',`${tx},${ty} ${bx+px},${by+py} ${bx-px},${by-py}`);svg.appendChild(pg);
+    }
+    el.appendChild(svg);
+  }
+  const a=document.createElement('div');a.className='art';a.innerHTML=artSVG(t,p);el.appendChild(a);
+  const n=document.createElement('div');n.className='nm';n.textContent=pieceName(t,p);el.appendChild(n);
+  el.setAttribute('role','img');el.setAttribute('aria-label',pieceLongName(t,p));
+  return el;
+}
+// The board is sized from the stage (the space left between the two player rows).
+// The stage size doesn't depend on the board, so we re-measure only when the stage itself
+// changes size (window resize, rotation, toolbar wrapping) — watched by a ResizeObserver.
+let lay={w:0,h:0,mode:null,cell:0};
+function layout(){
+  const m=M(),st=$('stage').getBoundingClientRect(),w=Math.round(st.width),h=Math.round(st.height);
+  if(lay.cell&&lay.mode===mode&&lay.w===w&&lay.h===h){
+    document.documentElement.style.setProperty('--cell',lay.cell+'px');return lay.cell}
+  const cell=Math.max(12,Math.floor(Math.min((w-12)/m.cols,(h-16)/m.rows,190)));
+  lay={w,h,mode,cell};
+  document.documentElement.style.setProperty('--cell',cell+'px');
+  return cell;
+}
+let hsCache={h:0,v:0};
+function handSize(){const h=window.innerHeight;if(!hsCache.v||Math.abs(h-hsCache.h)>=120)hsCache={h,v:Math.round(Math.max(44,Math.min(80,h*0.075)))};return hsCache.v}
+function segButtons(el,items,active,onPick){
+  el.innerHTML='';
+  for(const [k,html] of items){const b=document.createElement('button');b.type='button';b.setAttribute('aria-pressed',k===active);b.innerHTML=html;b.onclick=()=>onPick(k);el.appendChild(b)}
+}
+function hints(){ // squares / hand piece to flash for つめしょうぎ hints and おけいこ
+  const cells=new Set();let hand=null;
+  if(play()==='lesson'){
+    const st=curStep();(st.hl||[]).forEach(q=>cells.add(sqIndex(mode,q)));
+    if(st.q&&!ls.done&&ls.wrong>0){const m=parseLessonMove(st.mv,S);if(m.drop)hand=m.drop;else cells.add(m.from);if(m.to!=null)cells.add(m.to)}
+  }
+  if(play()==='tsume'&&tz.hint&&tz.status==='play'){if(tz.hint.drop)hand=tz.hint.drop;else cells.add(tz.hint.from)}
+  return {cells,hand};
+}
+function render(){
+  document.documentElement.style.setProperty('--hs',handSize()+'px');
+  const m=M(),face=play()!=='human',NM=names(),game=isGame();
+  $('app').classList.toggle('cpu',face);
+  segButtons($('modes'),Object.keys(MODES).map(k=>[k,`${MODES[k].title}<small>${MODES[k].size}</small>`]),mode,k=>{
+    if(k===mode)return;save();mode=k;load();save();render();maybeCpu()});
+  segButtons($('plays'),PLAYS.map(([k,l,s])=>[k,s?`${l}<small>${s}</small>`:l]),play(),k=>{
+    if(k===play())return;save();settings.play=k;saveSettings();load();save();render();maybeCpu()});
+  $('levels').hidden=!cpuOn();
+  segButtons($('levels'),LEVELS.map((L,i)=>[String(i),`${L.name}<small>つよさ${i+1}</small>`]),String(settings.level),k=>{
+    if(+k===settings.level)return;cancelThink();settings.level=+k;saveSettings();render();maybeCpu()});
+  $('undo').hidden=!game;$('reset').hidden=!game;
+  $('undo').disabled=!hist.length||(cpuOn()&&!hist.some(h=>h.includes('"turn":0,')));
+  const rb=$('reset');rb.textContent=resetArm?'ほんとうに？':'はじめから';rb.classList.toggle('warn',!!resetArm);
+  renderCoach();
+  const cell=layout();
+  const hn=hints();
+  const bd=$('board');bd.style.setProperty('--cols',m.cols);bd.innerHTML='';
+  const size=Math.round(cell*0.88);
+  for(let i=0;i<m.cols*m.rows;i++){
+    const r=rowOf(m,i),c=colOf(m,i),cellEl=document.createElement('div');
+    let cls='cell';if(c===m.cols-1)cls+=' lc';if(r===m.rows-1)cls+=' lr';
+    if(r<m.zone)cls+=' z0';else if(r>=m.rows-m.zone)cls+=' z1';
+    if(S.last&&(S.last.to===i||S.last.from===i))cls+=' last';
+    if(sel&&sel.kind==='board'&&sel.i===i)cls+=' sel';
+    if(moveMap.has(i)&&settings.hints){cls+=' tgt';if(S.board[i])cls+=' cap'}
+    if(hn.cells.has(i))cls+=' hint';
+    cellEl.className=cls;
+    const pc=S.board[i];
+    if(pc){const t=tile(pc.t,pc.p,pc.o,size,pc.o===1);if(justTo===i)t.classList.add('just');cellEl.appendChild(t)}
+    cellEl.onclick=()=>tapCell(i);
+    bd.appendChild(cellEl);
+  }
+  const hs=handSize();
+  for(const o of [0,1]){
+    const h=$('hand'+o);h.innerHTML='';
+    const types=HAND_ORDER.filter(t=>S.hands[o][t]);
+    if(!types.length){const e=document.createElement('span');e.className='empty';e.textContent=play()==='tsume'&&o===1?'':'とった駒はここ';h.appendChild(e)}
+    for(const t of types){const b=document.createElement('button');b.type='button';
+      b.className='hslot'+(sel&&sel.kind==='hand'&&sel.o===o&&sel.t===t?' sel':'')+(o===0&&hn.hand===t?' hint':'');
+      b.setAttribute('aria-label',SP[t].n+' '+S.hands[o][t]+'こ');
+      b.appendChild(tile(t,false,o,hs,face&&o===1));
+      if(S.hands[o][t]>1){const c=document.createElement('span');c.className='cnt';c.textContent='×'+S.hands[o][t];b.appendChild(c)}
+      b.onclick=()=>tapHand(o,t);h.appendChild(b)}
+    let on=false,think=false;
+    if(game){on=!S.pending&&S.winner===null&&S.turn===o;think=on&&cpuOn()&&o===1}
+    else if(play()==='tsume'){on=(tz.status==='play'&&o===0)||(tz.status==='wait'&&o===1);think=tz.status==='wait'&&o===1}
+    const pill=$('pill'+o);pill.classList.toggle('on',on);pill.classList.toggle('think',think);
+    pill.textContent=think?'かんがえちゅう':on?NM[o]+'のばん':NM[o];
+    let msg='';
+    if(game&&on&&inCheck(S,m,o))msg=strict()?'おうて！ にげよう':'ライオンがねらわれてるよ！';
+    if(play()==='tsume'&&o===1&&inCheck(S,m,1)&&tz.status!=='ok')msg='おうて！';
+    $('msg'+o).textContent=msg;
+  }
+  const old=$('stage').querySelector('.ov');if(old)old.remove();
+  if(promo)showPromo();
+  else if(play()==='tsume'&&(tz.status==='ok'||tz.status==='ng'))showTsumeResult();
+  else if(game&&S.pending)showStart();
+  else if(game&&S.winner!==null)showWin();
+}
+function btn(label,cls,fn,disabled){const b=document.createElement('button');b.type='button';if(cls)b.className=cls;b.textContent=label;b.onclick=fn;if(disabled)b.disabled=true;return b}
+function renderCoach(){
+  const co=$('coach'),p=play();
+  co.hidden=!(p==='tsume'||p==='lesson');if(co.hidden)return;
+  const title=$('ctitle'),chips=$('chips'),text=$('ctext'),bt=$('cbtns');
+  chips.innerHTML='';bt.innerHTML='';
+  if(p==='tsume'){
+    const list=TSUME[mode],P=list[tz.idx];
+    title.textContent=`もんだい ${tz.idx+1}（${P.n}手づめ）`;
+    list.forEach((q,i)=>{const b=btn(`${i+1}`+(q.n===3?'・3手':''),(i===tz.idx?'cur':'')+(tz.solved[i]?' ok':''),()=>gotoPuzzle(i));chips.appendChild(b)});
+    let t;
+    if(tz.status==='wait')t='あいてが にげかたを かんがえています…';
+    else if(hist.length===0)t=P.n===1?'おうてを かけて、ライオンが にげられないように しよう！（1手で つませよう）':'2かい おうてを かけて、ライオンを つかまえよう！ まずは 1手め。（3手づめ）';
+    else t='あいては こう うごいたよ。つぎの 1手で つませよう！';
+    if(tz.hint)t+=' ヒント：光っている 駒を うごかしてみよう。';
+    text.innerHTML='';text.append(t);
+    const small=document.createElement('small');small.textContent='つめしょうぎでは、みどりの ライオンは いません。あいての駒は コンピュータが うごかします。';text.appendChild(small);
+    bt.append(btn('ヒント','',tsumeHint,tz.status!=='play'||!!tz.hint),btn('さいしょから','',()=>gotoPuzzle(tz.idx)),
+      btn('◀ まえ','',()=>gotoPuzzle(tz.idx-1),tz.idx===0),btn('つぎ ▶','go',()=>gotoPuzzle(tz.idx+1),tz.idx>=list.length-1));
+  }else{
+    const L=curLesson(),st=curStep();
+    title.textContent=`${L.title}（${ls.step+1}/${L.steps.length}）`;
+    LESSONS[mode].forEach((q,i)=>chips.appendChild(btn(q.title,i===ls.li?'cur':'',()=>gotoLesson(i))));
+    text.innerHTML='';
+    const t=st.q&&ls.done?st.done:st.t;text.append(t);
+    if(st.q&&!ls.done){const s=document.createElement('strong');s.className='todo';s.textContent=' ← うごかしてみよう';text.appendChild(s)}
+    if(ls.msg){const w=document.createElement('span');w.className='warn';w.textContent=' '+ls.msg;text.appendChild(w)}
+    const last=ls.step===L.steps.length-1,lastLesson=ls.li===LESSONS[mode].length-1;
+    bt.append(btn('◀ もどる','',()=>lessonGo(-1),ls.step===0),
+      btn(last?(lastLesson?'おしまい':'つぎの おけいこ ▶'):'つぎへ ▶','go',()=>lessonGo(1),(st.q&&!ls.done)||(last&&lastLesson)));
+  }
+}
+function overlay(){const ov=document.createElement('div');ov.className='ov';$('stage').appendChild(ov);return ov}
+function showPromo(){
+  const ov=overlay(),card=document.createElement('div');card.className='card'+(S.turn===1&&!cpuOn()&&play()==='human'?' flip':'');
+  const pc=S.board[promo.from];
+  card.innerHTML='<h2>パワーアップする？</h2><p>えらんでね</p>';
+  const ch=document.createElement('div');ch.className='choices';
+  for(const pr of [true,false]){const b=document.createElement('button');b.type='button';
+    b.appendChild(tile(pc.t,pr,pc.o,96,false));b.append(pr?'パワーアップ！':'このまま');
+    b.onclick=()=>{const mv=promo.moves.find(x=>x.promote===pr);promo=null;doMove(mv)};ch.appendChild(b)}
+  card.appendChild(ch);ov.appendChild(card);
+  ov.onclick=e=>{if(e.target===ov){promo=null;render()}};
+}
+function showTsumeResult(){
+  const ov=overlay(),card=document.createElement('div');card.className='card';
+  const bt=document.createElement('div');bt.className='btns';
+  if(tz.status==='ok'){
+    card.innerHTML=`<div class="winner-big">🎉</div><h2>せいかい！</h2><p>ライオンは もう にげられません。つみです！</p>`;
+    const next=tz.idx<TSUME[mode].length-1;
+    if(next)bt.append(btn('つぎの もんだい','',()=>gotoPuzzle(tz.idx+1)));
+    bt.append(btn('もういちど とく','sub',()=>gotoPuzzle(tz.idx)));
+  }else{
+    card.innerHTML=`<div class="winner-big">🤔</div><h2>ざんねん…</h2><p>その手だと、ライオンに にげられてしまうよ。</p>`;
+    bt.append(btn('もういちど','',tsumeRetry),btn('ヒントを見る','sub',()=>{tsumeRetry();tsumeHint()}));
+  }
+  card.appendChild(bt);ov.appendChild(card);
+}
+function showStart(){
+  const ov=overlay(),card=document.createElement('div'),NM=names(),cpu=cpuOn();card.className='card';
+  if(startMsg){card.innerHTML=`<div class="winner-big">🎲</div><h2>${startMsg}</h2>`;ov.appendChild(card);return}
+  card.innerHTML='<h2>どっちからはじめる？</h2><p>さきに指すほうをえらんでね</p>';
+  const bt=document.createElement('div');bt.className='btns';
+  bt.append(btn(NM[0]+(cpu?'（あなた）':'')+'から','',()=>startGame(0)),btn(NM[1]+'から','p1b',()=>startGame(1)),
+    btn('🎲 ランダム','sub',()=>{
+      const f=Math.random()<.5?0:1,target=S;
+      startMsg=names()[f]+'からはじめるよ！';render();
+      setTimeout(()=>{startMsg='';if(S===target)startGame(f);else render()},1400)}));
+  card.appendChild(bt);ov.appendChild(card);
+}
+function startGame(f){S.turn=f;S.pending=false;clearSel();save();render();maybeCpu()}
+function showWin(){
+  const cpu=cpuOn(),ov=overlay(),card=document.createElement('div');card.className='card'+(S.winner===1&&!cpu?' flip':'');
+  const humanLost=cpu&&S.winner===1;
+  card.innerHTML=`<div class="winner-big">${humanLost?'🤖':'🎉'}</div><h2>${names()[S.winner]}のかち！</h2><p>${S.winText}${humanLost?'<br>「まった」でやりなおせるよ':''}</p>`;
+  const bt=document.createElement('div');bt.className='btns';
+  bt.append(btn('もういちど','',()=>{cancelThink();S=newGame(mode);hist=[];clearSel();save();render()}),btn('↶ まった','sub',undo));
+  card.appendChild(bt);ov.appendChild(card);
+}
+
+// ---------- interaction ----------
+function clearSel(){sel=null;moveMap=new Map()}
+function selectFrom(filterFn,s){
+  const ms=legalMoves(S,M(),strictNow()).filter(filterFn);moveMap=new Map();
+  for(const m of ms){if(!moveMap.has(m.to))moveMap.set(m.to,[]);moveMap.get(m.to).push(m)}
+  sel=s;
+}
+function canAct(){
+  if(promo)return false;
+  if(play()==='tsume')return tz.status==='play'&&S.turn===0;
+  if(play()==='lesson'){const st=curStep();return !!(st.q&&!ls.done)}
+  return !S.pending&&S.winner===null&&!(cpuOn()&&S.turn===1);
+}
+function tapCell(i){
+  wake();
+  if(!canAct())return;
+  if(moveMap.has(i)){
+    const ms=moveMap.get(i);clearSel();
+    if(ms.length>1){promo={from:ms[0].from,moves:ms};render();return}
+    doMove(ms[0]);return;
+  }
+  const pc=S.board[i];
+  if(pc&&pc.o===S.turn&&!(sel&&sel.kind==='board'&&sel.i===i)){selectFrom(m=>!m.drop&&m.from===i,{kind:'board',i})}
+  else clearSel();
+  render();
+}
+function tapHand(o,t){
+  wake();
+  if(!canAct()||o!==S.turn)return;
+  if(sel&&sel.kind==='hand'&&sel.t===t){clearSel()}else selectFrom(m=>m.drop===t,{kind:'hand',o,t});
+  render();
+}
+function doMove(m){
+  if(play()==='tsume')return tsumeMove(m);
+  if(play()==='lesson')return lessonMove(m);
+  commit(m);
+}
+function commit(m){
+  const mm=M(),mover=S.turn,cap=m.drop?null:S.board[m.to];
+  hist.push(JSON.stringify(S));
+  S=apply(S,mm,m);evaluate(S,mm,mover,cap,strict());
+  justTo=m.to;clearSel();resetArm=0;save();render();justTo=null;
+  maybeCpu();
+}
+function undo(){
+  if(!hist.length||!isGame())return;
+  cancelThink();
+  S=JSON.parse(hist.pop());
+  while(cpuOn()&&S.turn===1&&hist.length)S=JSON.parse(hist.pop());
+  promo=null;clearSel();save();render();maybeCpu();
+}
+$('undo').onclick=undo;
+$('reset').onclick=()=>{
+  if(!resetArm){resetArm=setTimeout(()=>{resetArm=0;render()},3000);render();return}
+  clearTimeout(resetArm);resetArm=0;cancelThink();S=newGame(mode);hist=[];promo=null;clearSel();save();render();
+};
+
+// ---------- settings ----------
+$('gear').onclick=openSettings;
+function openSettings(){
+  const m=M(),sh=$('sheet');sh.innerHTML='';
+  const head=document.createElement('div');head.className='head';
+  head.innerHTML=`<h2>せってい（${m.title}どうぶつしょうぎ）</h2>`;
+  head.appendChild(btn('とじる','close',closeSettings));sh.appendChild(head);
+
+  const h1=document.createElement('h3');h1.textContent='勝ちかた（ふたりで・コンピュータ）';sh.appendChild(h1);
+  for(const v of [false,true]){
+    const l=document.createElement('label');l.className='opt';
+    l.innerHTML=`<input type="radio" name="strict" id="strict-${v}" ${!!settings.strict[mode]===v?'checked':''}><span>${v?'つみで勝ち（しょうぎルール）':'ライオンをつかまえたら勝ち（やさしい）'}<small>${v?'ライオンが取られる手はさせません。にげられなくなったら負け。':'あぶない手も指せます。ねらわれていると「ライオンがねらわれてるよ！」と出ます。'}</small></span>`;
+    l.querySelector('input').onchange=()=>{settings.strict[mode]=v;saveSettings();clearSel();render()};
+    sh.appendChild(l);
+  }
+  const hl=document.createElement('label');hl.className='opt';
+  hl.innerHTML=`<input type="checkbox" id="hints" ${settings.hints?'checked':''}><span>動けるマスを光らせる<small>駒をタップすると、行けるマスに黄色い丸が出ます。</small></span>`;
+  hl.querySelector('input').onchange=e=>{settings.hints=e.target.checked;saveSettings();render()};
+  sh.appendChild(hl);
+
+  const hc=document.createElement('h3');hc.textContent='あそびかた';sh.appendChild(hc);
+  const ul0=document.createElement('ul');ul0.className='rules';
+  for(const t of ['ふたりで：iPadをはさんで向かい合って対戦します。',
+    'コンピュータ：上側（オレンジ）をコンピュータが指します。強さは よわい・ふつう・つよい の3つ。「よわい」は時々わざと間違えるので、はじめての子どもにおすすめです。「まった」はコンピュータの手とあなたの手をまとめて戻します。',
+    'つめしょうぎ：王手を続けてライオンを詰ませる問題です（1手詰・3手詰）。すべての問題は、答えがあることをプログラムで確かめてあります。解いた問題には ✓ が付きます。',
+    'おけいこ：説明を読みながら駒を動かして、基本の動きや、よく使われる指し方（おおきな森では 棒銀・舟囲い・美濃囲い）を覚えます。'])
+    {const li=document.createElement('li');li.textContent=t;ul0.appendChild(li)}
+  sh.appendChild(ul0);
+
+  const h2=document.createElement('h3');h2.textContent='駒の絵をお手元の駒にそろえる';sh.appendChild(h2);
+  const note=document.createElement('p');note.className='note';
+  note.textContent='お手元の駒を真上から撮った写真（または公式の画像を保存したもの）を選ぶと、その絵で表示されます。動く向きの印が上を向いた状態の画像を選んでください。正方形に切り抜いておくときれいに収まります。画像はこのiPadのブラウザの中だけに保存され、どこにも送信されません。';
+  sh.appendChild(note);
+  const grid=document.createElement('div');grid.className='imgs';
+  IMG_KEYS[mode].forEach(([t,p],ix)=>{
+    const row=document.createElement('div');row.className='imgrow';
+    row.appendChild(tile(t,!!p,0,64,false));
+    const meta=document.createElement('div');meta.className='meta';
+    const nm=document.createElement('span');nm.textContent=pieceLongName(t,!!p);meta.appendChild(nm);
+    const fid=`img-${mode}-${ix}`;
+    const lab=document.createElement('label');lab.htmlFor=fid;lab.textContent='画像をえらぶ';
+    const inp=document.createElement('input');inp.type='file';inp.accept='image/*';inp.id=fid;
+    inp.onchange=()=>{const f=inp.files&&inp.files[0];if(f)loadImage(f,t,!!p)};
+    meta.append(lab,inp);
+    if(getImg(mode,t,!!p))meta.appendChild(btn('もとにもどす','sub',()=>{const k=imgKey(mode,t,!!p);store.del(k);imgCache[k]=null;render();openSettings()}));
+    row.appendChild(meta);grid.appendChild(row);
+  });
+  sh.appendChild(grid);
+
+  const h3=document.createElement('h3');h3.textContent='このモードのルール';sh.appendChild(h3);
+  const ul=document.createElement('ul');ul.className='rules';
+  for(const r of m.rules){const li=document.createElement('li');li.textContent=r;ul.appendChild(li)}
+  const li=document.createElement('li');li.textContent='盤の色つきのマスは、そちらの色の人がパワーアップ（トライ）できる場所です。';ul.appendChild(li);
+  const li2=document.createElement('li');li2.textContent='駒の点はその方向に1マス、矢じりはその方向にどこまでも進めるしるしです。';ul.appendChild(li2);
+  sh.appendChild(ul);
+  $('modal').hidden=false;
+}
+function closeSettings(){$('modal').hidden=true}
+$('modal').onclick=e=>{if(e.target.id==='modal')closeSettings()};
+function loadImage(file,t,p){
+  const fr=new FileReader();
+  fr.onload=()=>{const im=new Image();im.onload=()=>{
+    const max=220,sc=Math.min(1,max/Math.max(im.width,im.height));
+    const cv=document.createElement('canvas');cv.width=Math.round(im.width*sc);cv.height=Math.round(im.height*sc);
+    cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height);
+    const url=cv.toDataURL('image/png'),k=imgKey(mode,t,p);
+    imgCache[k]=url;
+    if(!store.set(k,url)){const n=document.createElement('p');n.className='note';n.textContent='保存できませんでした（容量不足かプライベートブラウズの可能性）。この画面を開いている間だけ表示されます。';$('sheet').appendChild(n)}
+    render();openSettings();
+  };im.src=fr.result};
+  fr.readAsDataURL(file);
+}
+
+// ---------- misc ----------
+let lock=null;
+function wake(){if(lock||!navigator.wakeLock)return;navigator.wakeLock.request('screen').then(l=>{lock=l;l.addEventListener('release',()=>lock=null)}).catch(()=>{})}
+document.addEventListener('gesturestart',e=>e.preventDefault(),{passive:false});
+document.addEventListener('dblclick',e=>e.preventDefault(),{passive:false});
+let rt;window.addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(render,80)});
+load();render();maybeCpu();
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{lay.cell=0;render()});
+window.addEventListener('orientationchange',()=>{hsCache.v=0;setTimeout(render,300)});
+if(window.ResizeObserver){let lastW=0,lastH=0;new ResizeObserver(es=>{const r=es[0].contentRect;const w=Math.round(r.width),h=Math.round(r.height);if(w===lastW&&h===lastH)return;lastW=w;lastH=h;if(w!==lay.w||h!==lay.h)render()}).observe($('stage'))}
+})();
+</script>
+
+<script>
+if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('../sw.js').catch(()=>{}))}
+</script>
+</body>
+</html>
