@@ -39,7 +39,7 @@ body{margin:0;background:var(--forest);color:var(--cream);font-family:var(--font
   -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;overflow:hidden;touch-action:manipulation}
 button{font-family:inherit;cursor:pointer}
 button:focus-visible{outline:3px solid var(--hi);outline-offset:2px}
-#app{height:100%;display:flex;flex-direction:column;padding-inline:16px;box-sizing:border-box}
+#app{height:100%;height:100dvh;display:flex;flex-direction:column;padding-inline:16px;box-sizing:border-box}
 
 /* toolbar */
 .bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding-block:8px;border-bottom:1px solid rgba(255,255,255,.08)}
@@ -134,6 +134,64 @@ button:focus-visible{outline:3px solid var(--hi);outline-offset:2px}
 .hslot.hint{background:#ff6b5a}
 @media (prefers-reduced-motion:reduce){.cell.hint{animation:none}}
 
+
+/* narrow screens (phones): everything must fit the width */
+@media (max-width:700px){
+  .bar{gap:6px;padding-block:6px}
+  .brand{font-size:13px}
+  a.brand .bn{display:none}
+  .bar .modes,.bar .seg{flex:1 1 auto;min-width:0;max-width:100%}
+  .bar .modes button,.bar .seg button{flex:1 1 auto;min-width:0;justify-content:center;text-align:center;white-space:normal;padding:7px 5px;font-size:12.5px}
+  .bar .modes button small,.bar .seg button small{display:none}
+  .tools{gap:4px}
+  .tools button{padding:7px 9px;font-size:12.5px}
+  .crow{flex-wrap:wrap;row-gap:4px}
+  .crow .chips,.crow .cchips{order:3;flex:1 1 100%}
+  .ctitle{font-size:14px;flex:1 1 auto}
+  .cbtns{gap:4px}
+  .cbtns button{padding:7px 9px;font-size:12.5px}
+  .ctext{font-size:14px}
+}
+@media (max-width:700px){
+  .side{gap:8px}
+  .who{width:112px}
+  .pill{font-size:13px;padding:5px 9px}
+  .msg{font-size:11px;max-width:112px;overflow:hidden;text-overflow:ellipsis}
+  #plays button small{display:none}
+}
+
+
+/* compact menu: on phones (narrow, or short when held sideways) the pickers fold into one ▾ button */
+.picks{display:contents}
+.menu-btn,.reset2{display:none}
+@media (max-width:700px),(max-height:560px){
+  .bar{position:relative;flex-wrap:nowrap}
+  div.brand{display:none}
+  .menu-btn{display:block;flex:1 1 auto;min-width:0;border:1px solid rgba(255,255,255,.18);background:var(--forest2);color:var(--cream);
+    font-family:inherit;font-weight:700;font-size:13px;padding:8px 10px;border-radius:10px;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tools #reset{display:none}
+  .picks{display:none}
+  .bar.open .picks{display:flex;flex-direction:column;align-items:stretch;gap:8px;position:absolute;left:-16px;right:-16px;top:100%;z-index:40;
+    background:var(--forest);padding:10px 16px 14px;box-shadow:0 14px 24px rgba(0,0,0,.5);border-bottom:1px solid rgba(255,255,255,.12)}
+  .bar.open .picks .reset2{display:block;align-self:flex-start;border:1px solid rgba(255,255,255,.18);background:var(--forest2);color:var(--cream);
+    font-family:inherit;font-weight:700;font-size:13px;padding:8px 14px;border-radius:10px}
+  .bar.open .picks .reset2.warn{background:#8c3b2a;border-color:#c55}
+}
+@media (max-height:700px){.ctext{height:3em;font-size:13px}}
+
+/* phones held sideways: the two players' rows go to the left and right of the board */
+@media (max-height:560px) and (orientation:landscape){
+  #app{display:grid;grid-template-columns:minmax(100px,17%) minmax(0,1fr) minmax(100px,17%);grid-template-rows:auto auto minmax(0,1fr);column-gap:10px}
+  .bar,.coach{grid-column:1/-1}
+  #side1{grid-column:1;grid-row:3}
+  #stage{grid-column:2;grid-row:3}
+  #side0{grid-column:3;grid-row:3}
+  .side{height:auto;min-height:0;flex-direction:column;align-items:stretch;padding-block:8px;gap:6px}
+  .who{width:auto}
+  .msg{max-width:none}
+  .hand{flex-direction:column;align-items:center;overflow-x:hidden;overflow-y:auto;height:auto;flex:1 1 0;padding-inline:0;padding-block:4px}
+}
+
 /* overlays */
 .ov{position:absolute;inset:0;display:grid;place-items:center;background:rgba(20,32,25,.62);z-index:10;border-radius:12px}
 .card{background:var(--cream);color:var(--ink);border-radius:18px;padding:20px 24px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.4);max-width:calc(100% - 32px);box-sizing:border-box}
@@ -174,11 +232,15 @@ button:focus-visible{outline:3px solid var(--hi);outline-offset:2px}
 
 
 <div id="app">
-  <div class="bar">
-    <a class="brand" href="../"><span class="hm">◀ ホーム</span>どうぶつしょうぎ盤</a>
-    <div class="modes" id="modes"></div>
-    <div class="modes" id="plays"></div>
-    <div class="modes" id="levels" hidden></div>
+  <div class="bar" id="bar">
+    <a class="brand" href="../"><span class="hm">◀ ホーム</span><span class="bn">どうぶつしょうぎ盤</span></a>
+    <button class="menu-btn" id="menuBtn" type="button"></button>
+    <div class="picks" id="picks">
+      <div class="modes" id="modes"></div>
+      <div class="modes" id="plays"></div>
+      <div class="modes" id="levels" hidden></div>
+      <button class="reset2" id="reset2" type="button">はじめから</button>
+    </div>
     <div class="tools">
       <button id="undo" type="button">↶ まった</button>
       <button id="reset" type="button">はじめから</button>
@@ -758,9 +820,8 @@ function tile(t,p,colorOwner,size,flip,modeKey){
 // changes size (window resize, rotation, toolbar wrapping) — watched by a ResizeObserver.
 let lay={w:0,h:0,mode:null,cell:0};
 function layout(){
+  // always computed from the space available right now, so the board can never overflow
   const m=M(),st=$('stage').getBoundingClientRect(),w=Math.round(st.width),h=Math.round(st.height);
-  if(lay.cell&&lay.mode===mode&&lay.w===w&&lay.h===h){
-    document.documentElement.style.setProperty('--cell',lay.cell+'px');return lay.cell}
   const cell=Math.max(12,Math.floor(Math.min((w-12)/m.cols,(h-16)/m.rows,190)));
   lay={w,h,mode,cell};
   document.documentElement.style.setProperty('--cell',cell+'px');
@@ -792,9 +853,10 @@ function render(){
   $('levels').hidden=!cpuOn();
   segButtons($('levels'),LEVELS.map((L,i)=>[String(i),`${L.name}<small>つよさ${i+1}</small>`]),String(settings.level),k=>{
     if(+k===settings.level)return;cancelThink();settings.level=+k;saveSettings();render();maybeCpu()});
-  $('undo').hidden=!game;$('reset').hidden=!game;
+  $('undo').hidden=!game;$('reset').hidden=!game;$('reset2').hidden=!game;
+  $('menuBtn').textContent=`${m.title}・${PLAYS.find(q=>q[0]===play())[1]}${cpuOn()?'・'+LEVELS[settings.level].name:''} ▾`;
   $('undo').disabled=!hist.length||(cpuOn()&&!hist.some(h=>h.includes('"turn":0,')));
-  const rb=$('reset');rb.textContent=resetArm?'ほんとうに？':'はじめから';rb.classList.toggle('warn',!!resetArm);
+  for(const rb of [$('reset'),$('reset2')]){rb.textContent=resetArm?'ほんとうに？':'はじめから';rb.classList.toggle('warn',!!resetArm)}
   renderCoach();
   const cell=layout();
   const hn=hints();
@@ -975,8 +1037,14 @@ function undo(){
 $('undo').onclick=undo;
 $('reset').onclick=()=>{
   if(!resetArm){resetArm=setTimeout(()=>{resetArm=0;render()},3000);render();return}
-  clearTimeout(resetArm);resetArm=0;cancelThink();S=newGame(mode);hist=[];promo=null;clearSel();save();render();
+  clearTimeout(resetArm);resetArm=0;cancelThink();S=newGame(mode);hist=[];promo=null;clearSel();save();$('bar').classList.remove('open');render();
 };
+// compact menu (phones)
+$('menuBtn').onclick=e=>{e.stopPropagation();$('bar').classList.toggle('open')};
+$('picks').addEventListener('click',e=>{const b=e.target.closest('button');if(b&&!b.classList.contains('reset2'))setTimeout(()=>$('bar').classList.remove('open'),0)});
+document.addEventListener('click',e=>{if(!e.target.closest('#bar'))$('bar').classList.remove('open')});
+$('reset2').onclick=()=>{$('reset').click()};
+
 
 // ---------- settings ----------
 $('gear').onclick=openSettings;

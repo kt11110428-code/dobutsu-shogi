@@ -36,7 +36,7 @@ body{margin:0;background:var(--forest);color:var(--cream);font-family:var(--font
   -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;overflow:hidden}
 button{font-family:inherit;cursor:pointer}
 button:focus-visible{outline:3px solid var(--hi);outline-offset:2px}
-#app{height:100%;display:flex;flex-direction:column;padding-inline:16px}
+#app{height:100%;height:100dvh;display:flex;flex-direction:column;padding-inline:16px}
 
 /* toolbar */
 .bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding-block:8px;border-bottom:1px solid rgba(255,255,255,.08);flex:none}
@@ -106,6 +106,65 @@ button:focus-visible{outline:3px solid var(--hi);outline-offset:2px}
 .ctext .warn{color:#c0392b}
 .ctext .todo{color:var(--go)}
 
+
+/* narrow screens (phones): everything must fit the width */
+@media (max-width:700px){
+  .bar{gap:6px;padding-block:6px}
+  .brand{font-size:13px}
+  a.brand .bn{display:none}
+  .bar .modes,.bar .seg{flex:1 1 auto;min-width:0;max-width:100%}
+  .bar .modes button,.bar .seg button{flex:1 1 auto;min-width:0;justify-content:center;text-align:center;white-space:normal;padding:7px 5px;font-size:12.5px}
+  .bar .modes button small,.bar .seg button small{display:none}
+  .tools{gap:4px}
+  .tools button{padding:7px 9px;font-size:12.5px}
+  .crow{flex-wrap:wrap;row-gap:4px}
+  .crow .chips,.crow .cchips{order:3;flex:1 1 100%}
+  .ctitle{font-size:14px;flex:1 1 auto}
+  .cbtns{gap:4px}
+  .cbtns button{padding:7px 9px;font-size:12.5px}
+  .ctext{font-size:14px}
+}
+@media (max-width:700px){
+  .chips{gap:6px}
+  .chip{padding:4px 10px 4px 5px;gap:5px}
+  .chip .disc{width:26px;height:26px}
+  .chip b{font-size:20px}
+}
+@media (max-width:520px){.chip .nm{display:none}}
+
+
+/* compact menu: on phones (narrow, or short when held sideways) the pickers fold into one ▾ button */
+.picks{display:contents}
+.menu-btn,.reset2{display:none}
+@media (max-width:700px),(max-height:560px){
+  .bar{position:relative;flex-wrap:nowrap}
+  div.brand{display:none}
+  .menu-btn{display:block;flex:1 1 auto;min-width:0;border:1px solid rgba(255,255,255,.18);background:var(--forest2);color:var(--cream);
+    font-family:inherit;font-weight:700;font-size:13px;padding:8px 10px;border-radius:10px;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tools #reset{display:none}
+  .picks{display:none}
+  .bar.open .picks{display:flex;flex-direction:column;align-items:stretch;gap:8px;position:absolute;left:-16px;right:-16px;top:100%;z-index:40;
+    background:var(--forest);padding:10px 16px 14px;box-shadow:0 14px 24px rgba(0,0,0,.5);border-bottom:1px solid rgba(255,255,255,.12)}
+  .bar.open .picks .reset2{display:block;align-self:flex-start;border:1px solid rgba(255,255,255,.18);background:var(--forest2);color:var(--cream);
+    font-family:inherit;font-weight:700;font-size:13px;padding:8px 14px;border-radius:10px}
+  .bar.open .picks .reset2.warn{background:#8c3b2a;border-color:#c55}
+}
+@media (max-height:700px){.ctext{height:3em;font-size:13px}}
+
+/* phones held sideways: disc counts go to the left and right of the board */
+@media (max-height:560px) and (orientation:landscape){
+  #app{display:grid;grid-template-columns:minmax(90px,16%) minmax(0,1fr) minmax(90px,16%);grid-template-rows:auto auto minmax(0,1fr);column-gap:10px}
+  .bar,.coach{grid-column:1/-1}
+  #scoreTop{grid-column:1;grid-row:3}
+  #stage{grid-column:2;grid-row:3}
+  #scoreBot{grid-column:3;grid-row:3}
+  .score{justify-content:center}
+  .chips{flex-direction:column;align-items:stretch}
+  .smsg{white-space:normal;height:auto;text-align:center}
+  .chip{flex-wrap:wrap;justify-content:center;border-radius:14px;padding:6px}
+  .chip .nm{display:block;flex-basis:100%;text-align:center;white-space:normal;font-size:11px}
+}
+
 /* overlays */
 .ov{position:absolute;inset:0;display:grid;place-items:center;background:rgba(20,32,25,.55);z-index:10}
 .card{background:var(--cream);color:var(--ink);border-radius:18px;padding:20px 24px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.4);max-width:calc(100% - 32px)}
@@ -140,11 +199,15 @@ button:focus-visible{outline:3px solid var(--hi);outline-offset:2px}
 
 
 <div id="app">
-  <div class="bar">
-    <a class="brand" href="../"><span class="hm">◀ ホーム</span>リバーシ盤</a>
-    <div class="seg" id="plays"></div>
-    <div class="seg" id="opt1"></div>
-    <div class="seg" id="opt2"></div>
+  <div class="bar" id="bar">
+    <a class="brand" href="../"><span class="hm">◀ ホーム</span><span class="bn">リバーシ盤</span></a>
+    <button class="menu-btn" id="menuBtn" type="button"></button>
+    <div class="picks" id="picks">
+      <div class="seg" id="plays"></div>
+      <div class="seg" id="opt1"></div>
+      <div class="seg" id="opt2"></div>
+      <button class="reset2" id="reset2" type="button">はじめから</button>
+    </div>
     <div class="tools">
       <button id="undo" type="button">↶ まった</button>
       <button id="reset" type="button">はじめから</button>
@@ -479,9 +542,8 @@ const disc=c=>`<span class="disc c${c}"></span>`;
 let lay={w:0,h:0,n:0,cell:0};
 function layout(){
   const st=$('stage').getBoundingClientRect(),w=Math.round(st.width),h=Math.round(st.height);
-  if(!(lay.cell&&lay.n===G.n&&lay.w===w&&lay.h===h)){
-    lay={w,h,n:G.n,cell:Math.max(20,Math.floor(Math.min((w-16)/G.n,(h-16)/G.n,120)))};
-  }
+  // always computed from the space available right now, so the board can never overflow
+  lay={w,h,n:G.n,cell:Math.max(10,Math.floor(Math.min((w-16)/G.n,(h-16)/G.n,120)))};
   document.documentElement.style.setProperty('--cell',lay.cell+'px');
   return lay.cell;
 }
@@ -507,9 +569,13 @@ function render(){
     o1.hidden=false;seg(o1,LEVELS.map((L,i)=>[i,L.name,'']),settings.level,k=>{if(k===settings.level)return;settings.level=k;saveSettings();cancelThink();render();maybeCpu()});
     o2.hidden=false;seg(o2,[[6,'6×6'],[8,'8×8']],settings.size.cpu,k=>{if(k===settings.size.cpu)return;settings.size.cpu=k;saveSettings();cancelThink();G=newGame();hist=[];save();render()});
   }else{o1.hidden=true;o2.hidden=true}
-  $('undo').hidden=!game;$('reset').hidden=!game;
+  $('undo').hidden=!game;$('reset').hidden=!game;$('reset2').hidden=!game;
+  {const pl=PLAYS.find(q=>q[0]===p)[1];let t=pl;
+   if(p==='multi')t+=`・${settings.players}にん・${settings.size['m'+settings.players]}×${settings.size['m'+settings.players]}`;
+   if(p==='cpu')t+=`・${LEVELS[settings.level].name}・${settings.size.cpu}×${settings.size.cpu}`;
+   $('menuBtn').textContent=t+' ▾'}
   $('undo').disabled=!hist.length||(game&&!hist.some(h=>!seatIsCpu(JSON.parse(h).turn)));
-  $('reset').textContent=resetArm?'ほんとうに？':'はじめから';$('reset').classList.toggle('warn',!!resetArm);
+  for(const rb of [$('reset'),$('reset2')]){rb.textContent=resetArm?'ほんとうに？':'はじめから';rb.classList.toggle('warn',!!resetArm)}
   $('scoreTop').hidden=p!=='multi';
   renderCoach();
   const cell=layout(),n=G.n;
@@ -659,8 +725,14 @@ function tap(i){
 $('undo').onclick=undo;
 $('reset').onclick=()=>{
   if(!resetArm){resetArm=setTimeout(()=>{resetArm=0;render()},3000);render();return}
-  clearTimeout(resetArm);resetArm=0;cancelThink();G=newGame();hist=[];pv=null;save();render();
+  clearTimeout(resetArm);resetArm=0;cancelThink();G=newGame();hist=[];pv=null;save();$('bar').classList.remove('open');render();
 };
+// compact menu (phones)
+$('menuBtn').onclick=e=>{e.stopPropagation();$('bar').classList.toggle('open')};
+$('picks').addEventListener('click',e=>{const b=e.target.closest('button');if(b&&!b.classList.contains('reset2'))setTimeout(()=>$('bar').classList.remove('open'),0)});
+document.addEventListener('click',e=>{if(!e.target.closest('#bar'))$('bar').classList.remove('open')});
+$('reset2').onclick=()=>{$('reset').click()};
+
 
 // ---------- settings ----------
 $('gear').onclick=openSettings;
