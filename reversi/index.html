@@ -243,10 +243,20 @@ function movesFor(b,n,p){const r=[];for(let i=0;i<n*n;i++){if(b[i]!==-1)continue
 function place(b,i,p,f){const nb=b.slice();nb[i]=p;for(const k of f)nb[k]=p;return nb}
 function counts(b){const c=[0,0,0,0,0];for(const v of b)if(v>=0)c[v]++;return c}
 function empties(b){let e=0;for(const v of b)if(v===-1)e++;return e}
+// empty squares touching any stone (8 directions)
+function adjEmpties(b,n){const out=[];for(let i=0;i<n*n;i++){if(b[i]!==-1)continue;const r=Math.floor(i/n),c=i%n;
+  for(const [dx,dy] of DIRS){const rr=r+dy,cc=c+dx;if(rr>=0&&rr<n&&cc>=0&&cc<n&&b[rr*n+cc]!==-1){out.push(i);break}}}return out}
+// legal moves. 3-4 players (like Rolit): you must flip if you can; if you can't, you may place next to any stone
+// without flipping — so nobody drops out when their colour hits 0, and play goes on until the board is full.
+function legalFor(b,n,p,players){
+  const m=movesFor(b,n,p);
+  if(m.length||!players||players.length<3)return m;
+  return adjEmpties(b,n).map(i=>({i,f:[]}));
+}
 // next player (in seat order) who can move; passed = players skipped; null = game over
 function nextTurn(b,n,players,cur){
   const k=players.indexOf(cur),passed=[];
-  for(let s=1;s<=players.length;s++){const p=players[(k+s)%players.length];if(movesFor(b,n,p).length)return {p,passed};passed.push(p)}
+  for(let s=1;s<=players.length;s++){const p=players[(k+s)%players.length];if(legalFor(b,n,p,players).length)return {p,passed};passed.push(p)}
   return null;
 }
 // ---------- evaluation ----------
@@ -316,17 +326,17 @@ function search(b,n,me,op,opts){
 }
 // 3-4 players: look one move ahead (position value + flips − what the next player can do)
 function greedyMulti(b,n,players,me,opts){
-  const w=weights(n),ms=movesFor(b,n,me);if(!ms.length)return -1;
+  const w=weights(n),ms=legalFor(b,n,me,players);if(!ms.length)return -1;
   let best=-1,bv=-Infinity;
   for(const m of ms){
     const nb=place(b,m.i,me,m.f);let v=w[m.i]+2*m.f.length;
-    if(opts.depth>1){const nt=nextTurn(nb,n,players,me);if(nt){const om=movesFor(nb,n,nt.p);let worst=0;for(const o of om)worst=Math.max(worst,w[o.i]+o.f.filter(k=>nb[k]===me).length*2);v-=worst*0.8}}
+    if(opts.depth>1){const nt=nextTurn(nb,n,players,me);if(nt){const om=legalFor(nb,n,nt.p,players);let worst=0;for(const o of om)worst=Math.max(worst,w[o.i]+o.f.filter(k=>nb[k]===me).length*2);v-=worst*0.8}}
     v+=(Math.random()*2-1)*opts.noise/10;
     if(v>bv){bv=v;best=m.i}
   }
   return best;
 }
-return {flipsAt,movesFor,place,counts,empties,nextTurn,weights,solve,search,greedyMulti};
+return {flipsAt,movesFor,legalFor,place,counts,empties,nextTurn,weights,solve,search,greedyMulti};
 }
 
 // ================= app =================
@@ -581,7 +591,7 @@ function render(){
   const cell=layout(),n=G.n;
   // board
   const bd=$('board');bd.style.setProperty('--n',n);bd.innerHTML='';
-  const dots=showDots(),moves=dots?new Map(E.movesFor(G.b,n,G.turn).map(m=>[m.i,m.f.length])):new Map();
+  const dots=showDots(),moves=dots?new Map(E.legalFor(G.b,n,G.turn,G.players).map(m=>[m.i,m.f.length||''])):new Map();
   const hl=new Set();
   if(p==='lesson'){const st=curStep();(st.hl||[]).forEach(q=>hl.add(sqI(6,q)));if(st.q&&!ls.done&&ls.wrong>0&&st.mv!=='?')hl.add(sqI(6,st.mv))}
   if(p==='puzzle'&&pz.hint&&pz.status==='play')hl.add(PUZZLES[pz.idx].a);
@@ -614,7 +624,7 @@ function render(){
     }
     let m=G.msg||'';
     if(thinking)m='かんがえちゅう';
-    else if(!m&&game&&!G.over&&!G.pending)m=NAMES[G.turn]+'の ばん';
+    else if(!m&&game&&!G.over&&!G.pending){m=NAMES[G.turn]+'の ばん';if(G.players.length>2&&!E.movesFor(G.b,G.n,G.turn).length)m+='・となりに おけるよ'}
     const me=$(mid);me.textContent=m;me.classList.toggle('think',thinking);
   }
   // overlays
@@ -710,8 +720,8 @@ function showPuzzleResult(){
 function tap(i){
   wake();
   if(!canAct())return;
-  const f=E.flipsAt(G.b,G.n,i,G.turn);
-  if(!f.length){
+  const lm=E.legalFor(G.b,G.n,G.turn,G.players).find(m=>m.i===i),f=lm?lm.f:[];
+  if(!lm){
     if(play()==='lesson'&&G.b[i]===-1){ls.wrong++;ls.msg='そこは あいての いしを はさめないから おけないよ。';render()}
     else if(pv){pv=null;render()}
     return;
@@ -764,7 +774,7 @@ function openSettings(){
   const ul=document.createElement('ul');ul.className='rules';
   for(const t of ['あいての いしを じぶんの いしで はさむと、ひっくりかえって じぶんの いろに なります。はさめる ところにしか おけません。',
     'おける ところが ない ときは パス。だれも おけなくなったら おしまいで、いしが いちばん おおい 人の かちです。',
-    '3にん・4にん：じぶん いがいの いしは、いろが まざっていても まとめて はさめます。3にんの ときは まん中に だれのでもない はいいろの いしが 1つ あり、はさめば じぶんの いろに なります。',
+    '3にん・4にん：じぶん いがいの いしは、いろが まざっていても まとめて はさめます。はさめる ところが ない ときは、どれかの いしの となりに（はさまなくても）おけます。だから いしが 0こに なっても また もどってこられて、盤が うまるまで みんなで あそべます。3にんの ときは まん中に だれのでもない はいいろの いしが 1つ あり、はさめば じぶんの いろに なります。',
     'もんだい：どれも こたえが 1つだけに きまる ことを プログラムで たしかめてあります。'])
     {const li=document.createElement('li');li.textContent=t;ul.appendChild(li)}
   sh.appendChild(ul);
