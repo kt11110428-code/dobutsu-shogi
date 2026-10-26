@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#23392d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="盤あそび">
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="apple-touch-icon" href="../icon-180.png">
+<link rel="icon" href="../icon-192.png">
+<style>
+#app{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+a.brand{color:inherit;text-decoration:none;display:flex;align-items:center;gap:8px}
+a.brand .hm{font-size:13px;font-weight:700;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18)}
+</style>
+<title>なぞなぞ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap">
+<style>
+:root{
+  color-scheme: dark;
+  --forest:#23392d; --forest2:#2f4a3a; --cream:#fff6e3; --muted:#b9c9b6;
+  --hi:#ffe36e; --ink:#4a3521; --sub:#7a5a3a; --go:#3f9a5b; --no:#c0573a; --paper2:#f3e6c8;
+  --font:"Zen Maru Gothic","Hiragino Maru Gothic ProN","Hiragino Sans",sans-serif;
+}
+[hidden]{display:none!important}
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+*{touch-action:manipulation}
+body{margin:0;background:var(--forest);color:var(--cream);font-family:var(--font);-webkit-tap-highlight-color:transparent;overflow:hidden}
+button{font-family:inherit;cursor:pointer}
+button:focus-visible{outline:3px solid var(--hi);outline-offset:2px}
+#app{height:100%;height:100dvh;display:flex;flex-direction:column;padding-inline:16px}
+
+/* toolbar */
+.bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding-block:8px;border-bottom:1px solid rgba(255,255,255,.08);flex:none}
+.brand{font-weight:900;font-size:15px;letter-spacing:.04em;margin-right:auto;white-space:nowrap}
+.seg{display:flex;background:rgba(0,0,0,.25);border-radius:12px;padding:3px;gap:3px;min-width:0}
+.seg button{border:0;background:transparent;color:var(--muted);font-weight:700;font-size:14px;padding:7px 11px;border-radius:9px;line-height:1.15;text-align:center;flex:1 1 auto;min-width:0}
+.seg button small{display:block;font-size:11px;font-weight:500;opacity:.8}
+.seg button[aria-pressed="true"]{background:var(--cream);color:var(--ink)}
+.seg .short{display:none}
+.tools{display:flex;gap:6px}
+.tools button{border:1px solid rgba(255,255,255,.18);background:var(--forest2);color:var(--cream);font-weight:700;font-size:14px;padding:9px 12px;border-radius:10px}
+
+/* question card */
+.stage{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding-block:12px;overflow:auto}
+.card{width:min(820px,100%);background:var(--cream);color:var(--ink);border-radius:24px;padding:20px 24px 22px;box-shadow:0 12px 34px rgba(0,0,0,.35);display:flex;flex-direction:column;gap:14px}
+.meta{display:flex;justify-content:space-between;align-items:center;gap:10px;font-weight:700;font-size:14px;color:var(--sub)}
+.meta b{color:var(--ink);font-variant-numeric:tabular-nums}
+.score{display:flex;gap:10px;font-variant-numeric:tabular-nums}
+.score span{display:inline-flex;align-items:center;gap:4px}
+.q{font-size:clamp(22px,4.2vw,40px);font-weight:900;line-height:1.5;text-wrap:pretty;margin:0;min-height:3em;display:flex;align-items:center}
+.q .lead{color:var(--sub);font-size:.6em;display:block}
+.box{border-radius:16px;padding:12px 16px;font-weight:700;font-size:clamp(16px,2.4vw,20px);line-height:1.6}
+.hint{background:#fdf0c4;border:2px dashed #e0b84a}
+.hint b{color:#9a6a00}
+.ans{background:#e4f2e3;border:2px solid var(--go)}
+.ans .a{font-size:clamp(26px,5vw,44px);font-weight:900;line-height:1.3;color:#1f5e33;display:block}
+.ans .e{display:block;margin-top:6px;color:var(--ink);font-size:clamp(15px,2.2vw,18px)}
+.acts{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.acts button{border:0;border-radius:14px;padding:13px 20px;font-weight:900;font-size:clamp(15px,2.4vw,19px);background:var(--forest2);color:var(--cream);display:inline-flex;align-items:center;gap:8px}
+.acts button.go{background:var(--go)}
+.acts button.no{background:var(--no)}
+.acts button.soft{background:var(--paper2);color:var(--ink)}
+.acts button:disabled{opacity:.35}
+.done{text-align:center}
+.done .big{font-size:64px;line-height:1}
+.done h2{margin:6px 0;font-size:30px;font-weight:900}
+.done p{margin:0;font-size:18px;font-weight:700;color:var(--sub)}
+.prog{width:min(820px,100%);height:8px;border-radius:99px;background:rgba(255,255,255,.12);margin-top:12px;overflow:hidden;flex:none}
+.prog i{display:block;height:100%;background:var(--hi);border-radius:99px;transition:width .3s}
+
+/* settings */
+.modal{position:fixed;inset:0;background:rgba(10,20,14,.7);z-index:50;display:grid;place-items:center;padding:16px}
+.sheet{background:var(--cream);color:var(--ink);border-radius:18px;width:min(640px,100%);max-height:calc(100% - 32px);overflow:auto;padding:20px 22px}
+.sheet h3{margin:18px 0 8px;font-size:17px;font-weight:900}
+.sheet .head{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.sheet .head h2{margin:0;font-size:20px;font-weight:900}
+.sheet .close{border:0;background:var(--forest2);color:var(--cream);font-weight:900;border-radius:10px;padding:10px 16px;font-size:15px}
+.sheet label.opt{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:12px;background:var(--paper2);margin-bottom:6px;font-weight:700;font-size:15px;line-height:1.45}
+.sheet label.opt small{display:block;font-weight:500;color:var(--sub);font-size:13px}
+.sheet input{width:20px;height:20px;margin-top:2px;flex:none;accent-color:var(--go)}
+.sheet .row{display:flex;gap:8px;flex-wrap:wrap}
+.sheet .row label.opt{flex:1;min-width:120px;align-items:center}
+.sheet .reset{border:0;border-radius:10px;padding:10px 14px;font-weight:900;background:var(--no);color:#fff;font-size:14px}
+.note{font-size:13px;line-height:1.65;color:var(--sub);margin:0 0 8px}
+
+@media (max-width:700px){
+  .bar{gap:6px;padding-block:6px}
+  .brand{font-size:13px}
+  a.brand .bn{display:none}
+  .seg{flex:1 1 100%;order:3}
+  .seg button{padding:7px 4px;font-size:12.5px;white-space:nowrap}
+  .seg button small,.seg .long{display:none}
+  .seg .short{display:inline}
+  .tools button{padding:7px 9px;font-size:12.5px}
+  .card{padding:16px 16px 18px;border-radius:20px;gap:12px}
+  .acts{gap:8px}
+  .acts button{padding:11px 14px}
+}
+@media (max-height:560px){
+  .q{min-height:0}
+  .card{gap:8px;padding-block:12px}
+}
+@media (prefers-reduced-motion:reduce){.prog i{transition:none}}
+</style>
+</head>
+<body>
+
+
+<div id="app">
+  <div class="bar">
+    <a class="brand" href="../"><span class="hm">◀ ホーム</span><span class="bn">なぞなぞ</span></a>
+    <div class="seg" id="levels"></div>
+    <div class="tools">
+      <button id="gear" type="button">せってい</button>
+    </div>
+  </div>
+  <div class="stage" id="stage">
+    <div class="card" id="card"></div>
+    <div class="prog"><i id="prog"></i></div>
+  </div>
+</div>
+<div class="modal" id="modal" hidden><div class="sheet" id="sheet"></div></div>
+
+<script>
+(()=>{
+// q = もんだい, h = ヒント, a = こたえ, e = せつめい（なくてもよい）
+const LEVELS=[
+  {key:'pre',name:'みしゅうがくじ',short:'みしゅう',sub:'3〜6さい',list:[
+    {q:'パンは パンでも、たべられない パンは なあに？',h:'だいどころで、りょうりを つくるときに つかうよ。',a:'フライパン',e:'「フライパン」の なかに「パン」が かくれているね。'},
+    {q:'はしは はしでも、わたれない はしは なあに？',h:'ごはんを たべるときに つかうよ。',a:'おはし',e:'かわに かかる「はし」じゃなくて、ごはんを たべる「おはし」！'},
+    {q:'くもは くもでも、そらに いない くもは なあに？',h:'あしが 8ほん。いとを だして すを つくるよ。',a:'むしの クモ',e:'そらの「くも」と、むしの「クモ」は おなじ なまえだね。'},
+    {q:'はなは はなでも、においを かぐ はなは なあに？',h:'かおの まんなかに あるよ。',a:'かおの はな',e:'さく「はな」と、かおの「はな」は おなじ なまえ！'},
+    {q:'くるまは くるまでも、かぜで くるくる まわる くるまは なあに？',h:'ふーっと いきを ふきかけても まわるよ。',a:'かざぐるま'},
+    {q:'かさは かさでも、けがを した あとに できる かさは なあに？',h:'ころんで すりむいた ところに できるよ。はがしちゃ だめ。',a:'かさぶた'},
+    {q:'とりは とりでも、そらを とばずに ごみを あつめる とりは なあに？',h:'ほうきと いっしょに つかうよ。',a:'ちりとり',e:'「ちりとり」の なかに「とり」が かくれているね。'},
+    {q:'よるに なると、おしりが ぴかぴか ひかる むしは なあに？',h:'なつの かわの そばで みられるよ。',a:'ほたる'},
+    {q:'はなが とっても ながくて、みずを シャワーみたいに かける どうぶつは なあに？',h:'からだが おおきくて、みみも おおきいよ。',a:'ぞう'},
+    {q:'くびが とっても ながくて、たかい きの はっぱを たべる どうぶつは なあに？',h:'きいろに ちゃいろの もようが あるよ。',a:'きりん'},
+    {q:'あたまに おさらを のせて、きゅうりが だいすきな ようかいは なあに？',h:'かわに すんでいて、みどりいろ。',a:'かっぱ'},
+    {q:'おなかの ふくろに あかちゃんを いれて、ぴょんぴょん はねる どうぶつは なあに？',h:'オーストラリアに すんでいるよ。',a:'カンガルー'},
+    {q:'うえから よんでも したから よんでも おなじ なまえの、あかい やさいは なあに？',h:'サラダに よく はいっているよ。と・ま・と。',a:'トマト',e:'「ト・マ・ト」を うしろから よんでも「ト・マ・ト」！'},
+    {q:'ふゆに そとで つくる、ゆきの にんぎょうは なあに？',h:'まるい ゆきを 2つ かさねるよ。',a:'ゆきだるま'},
+    {q:'たたかれても おこらないで、ドンドン いい おとを だすのは なあに？',h:'おまつりで よく きく がっきだよ。',a:'たいこ'},
+    {q:'つかえば つかうほど、どんどん ちいさく なる ぶんぼうぐは なあに？',h:'えんぴつの まちがいを なおすときに つかうよ。',a:'けしゴム',e:'えんぴつも つかうと みじかく なるね。えんぴつも せいかい！'},
+    {q:'ストローで ふーっと ふくと、ふわふわ とんで、パチンと きえるのは なあに？',h:'にじいろに ひかる まるい たまだよ。',a:'しゃぼんだま'},
+    {q:'みぎてを あげると、ひだりてを あげる「もうひとりの じぶん」が いるのは なあに？',h:'かおを あらう ところに あるよ。',a:'かがみ'},
+    {q:'おひさまの したで、いつも あしもとに ついてくる くろい ともだちは なあに？',h:'よるの くらい へやでは みえなく なるよ。',a:'かげ'},
+    {q:'あめの あとに そらに かかる、なないろの はしは なあに？',h:'おひさまの はんたいがわの そらを みてね。',a:'にじ'},
+    {q:'おつきさまで おもちを ついている と いわれる どうぶつは なあに？',h:'ながい みみで、にんじんが すき。',a:'うさぎ'},
+    {q:'とりなのに そらを とばないで、うみを すいすい およぐのは なあに？',h:'くろと しろで、よちよち あるくよ。',a:'ペンギン'},
+    {q:'せつぶんの ひに、「そとー！」と まめを なげられるのは だあれ？',h:'あたまに つのが あって、とらの もようの パンツを はいているよ。',a:'おに'},
+    {q:'クリスマスの よるに、こどもたちに プレゼントを くばるのは だあれ？',h:'あかい ふくで、しろい ひげ。トナカイの そりに のってくるよ。',a:'サンタクロース'},
+    {q:'しろと くろの からだで、ササを むしゃむしゃ たべる どうぶつは なあに？',h:'めの まわりが くろいよ。',a:'パンダ'},
+    {q:'たこは たこでも、うみに いないで、そらを とぶ たこは なあに？',h:'おしょうがつに、いとを ひっぱって あげるよ。',a:'たこあげの たこ（凧）',e:'うみの「タコ」と、そらに あげる「たこ」は おなじ なまえ！'},
+    {q:'あめは あめでも、そらから ふらない、なめると あまい あめは なあに？',h:'くちの なかで ころころ…。',a:'おかしの あめ（キャンディ）',e:'ふる「あめ」と、なめる「あめ」は おなじ なまえだね。'},
+    {q:'せなかに かたい こうらを しょって、のんびり あるく どうぶつは なあに？',h:'うさぎと かけっこを した おはなしが あるよ。',a:'かめ'},
+    {q:'せんろの うえを、ガタンゴトンと はしる ながい のりものは なあに？',h:'えきに とまって、ひとを のせるよ。',a:'でんしゃ'},
+    {q:'わると、なかから ひよこが でてくるのは なあに？',h:'にわとりが うむよ。',a:'たまご'},
+  ]},
+  {key:'elem',name:'しょうがくせい',short:'しょう',sub:'6〜12さい',list:[
+    {q:'れいぞうこの 中に いる どうぶつは なあに？',h:'「れい・ぞう・こ」と、ゆっくり 言ってみよう。',a:'ゾウ',e:'れい「ぞう」こ。'},
+    {q:'カバンの 中に いる どうぶつは なあに？',h:'「カバン」から「ン」を とってみよう。',a:'カバ',e:'「カバ」ン。'},
+    {q:'お父さんが きらいな くだものは なあに？',h:'お父さんのことを ほかの よびかたで 言うと…？',a:'パパイヤ',e:'「パパ、いや！」'},
+    {q:'食べると ほっと 安心する おかしは なあに？',h:'フライパンで やく、まるくて あまい おかし。',a:'ホットケーキ',e:'「ホッと」ケーキ。'},
+    {q:'さかさまに なると、かるく なる どうぶつは なあに？',h:'海に すんでいて、ジャンプが とくい。',a:'イルカ',e:'「イルカ」を うしろから 読むと「カルイ（かるい）」！'},
+    {q:'目が 3つ あるのに、なにも 見えないものは なあに？',h:'交差点に あって、赤・黄・青に 光るよ。',a:'しんごうき'},
+    {q:'足が 4本 あるのに、ぜんぜん 歩けないものは なあに？',h:'勉強するときに つかうよ。',a:'つくえ（いすも せいかい）'},
+    {q:'歯が たくさん あるのに、なにも 食べないものは なあに？',h:'かみの毛を ととのえるよ。',a:'くし',e:'のこぎりや はぐるまも せいかい！'},
+    {q:'首は あるのに、頭が ないものは なあに？',h:'毎日 着るよ。',a:'シャツ（ふく）',e:'びんの「首」も あるね。びんも せいかい！'},
+    {q:'上から読んでも 下から読んでも 同じになる、毎朝 とどく 紙は なあに？',h:'ニュースが 書いてあるよ。',a:'しんぶんし',e:'「し・ん・ぶ・ん・し」は うしろから 読んでも 同じ！'},
+    {q:'朝は 4本足、昼は 2本足、夜は 3本足。これ なあに？',h:'朝・昼・夜は、1日じゃなくて「一生」のこと。',a:'にんげん',e:'赤ちゃんの ころは ハイハイ（4本）、大人は 2本足、お年よりは つえを ついて 3本。'},
+    {q:'使う前は 黒くて、使うと 赤くなり、使いおわると 白くなるものは なあに？',h:'バーベキューで 火を おこすときに つかうよ。',a:'すみ（炭）',e:'黒い炭が 赤く もえて、さいごは 白い はいに なるよ。'},
+    {q:'さむい 冬でも「あつい」と 言われる 本は なあに？',h:'ページが とても 多い本。',a:'ぶあつい 本',e:'「あつい」は あつさ（暑い）じゃなくて、「ぶあつい（厚い）」の ほう！'},
+    {q:'切っても 切っても 切れないものは なあに？',h:'ほうちょうで 切ろうとしても、すぐに もとに もどるよ。コップに 入っている。',a:'水'},
+    {q:'頭が 赤くて 体が ほそい。こすると 火が つくものは なあに？',h:'小さな 箱に 入っているよ。',a:'マッチ'},
+    {q:'いつも 立ったまま ねむる どうぶつは なあに？',h:'人を のせて 走るよ。ヒヒーン！',a:'うま'},
+    {q:'1年に 1日だけ、うそを ついても いいと される 日は なあに？',h:'4月1日。',a:'エイプリルフール'},
+    {q:'トラは トラでも、たくさんの 楽器を えんそうする トラは なあに？',h:'コンサートで、しきしゃが 前に 立つよ。',a:'オーケストラ',e:'オーケス「トラ」。'},
+    {q:'カメは カメでも、写真を とる カメは なあに？',h:'パシャッ！',a:'カメラ',e:'「カメ」ラ。'},
+    {q:'イスは イスでも、すわれない、つめたくて あまい イスは なあに？',h:'夏に 食べると おいしいよ。',a:'アイス',e:'ア「イス」。'},
+    {q:'タイは タイでも、首に まく タイは なあに？',h:'お父さんが スーツと いっしょに つけるよ。',a:'ネクタイ'},
+    {q:'ハチは ハチでも、さされない ハチは なあに？',h:'花を そだてるときに 土を 入れるよ。',a:'うえきばち'},
+    {q:'もちは もちでも、食べられない もちは なあに？',h:'ころんで おしりを ぶつけたら…？',a:'しりもち',e:'「やきもち」や「おかねもち」も せいかい！'},
+    {q:'くちは くちでも、人が 出たり 入ったりする くちは なあに？',h:'お店や えきに あるよ。',a:'でぐち・いりぐち'},
+    {q:'自分のものなのに、ほかの人の ほうが たくさん 使うものは なあに？',h:'みんなに よばれるときに 使われるよ。',a:'なまえ'},
+    {q:'ボールは ボールでも、なげたり けったり しない ボールは なあに？',h:'ひっこしの ときに にもつを 入れるよ。',a:'だんボール'},
+    {q:'かけっこで、2番の 人を ぬかしたら、あなたは なん番？',h:'1番の 人は まだ 前に いるよ。',a:'2番',e:'2番の人を ぬかしたら、その人の いた 2番になる。1番では ないよ！'},
+    {q:'お母さんの 子どもなのに、あなたの きょうだいでは ない人は だあれ？',h:'かがみを 見ると いるよ。',a:'あなた（自分）'},
+    {q:'体を あらえば あらうほど、小さく なるものは なあに？',h:'あわが いっぱい 出るよ。',a:'せっけん'},
+    {q:'ぼうしは ぼうしでも、かぶれない ぼうしは なあに？',h:'火事の ときに かけつけて くれる人。',a:'しょうぼうし（消防士）',e:'しょう「ぼうし」。'},
+  ]},
+  {key:'jh',name:'ちゅうがくせい',short:'ちゅう',sub:'12〜15さい',list:[
+    {q:'木の上に 立って、子どもを 見守っているのは だれ？（漢字1字）',h:'「立」「木」「見」を組み合わせてみよう。',a:'親',e:'「親」は「立」＋「木」＋「見」でできている。'},
+    {q:'人が 木に よりかかって ひと息。どんな漢字になる？',h:'学校が ない日のこと。',a:'休',e:'にんべん（人）＋「木」で「休」。'},
+    {q:'草が 化けると、何になる？（漢字1字）',h:'くさかんむり＋「化」。',a:'花'},
+    {q:'「口」の中に「十」を書くと、何になる？',h:'お米を そだてる ところ。',a:'田'},
+    {q:'「日」を3つ 組み合わせると、何という漢字になる？',h:'「結晶」の「しょう」。',a:'晶'},
+    {q:'鳥が 山に とまって できる漢字は？',h:'海に うかぶ 陸地。',a:'島',e:'「島」は「山」と「鳥」（を少し省いた形）からできている。昔は「嶋」とも書いた。'},
+    {q:'「大」に 1画だけ 足してできる漢字を、4つ言えるかな？',h:'点を打つ場所や、横線を 足す場所を 変えてみよう。',a:'太・犬・天・夫'},
+    {q:'田んぼで 力を出して はたらく人を表す漢字は？',h:'「田」＋「力」。',a:'男'},
+    {q:'女の人が 子どもを だっこしている。どんな気持ちの漢字？',h:'「女」＋「子」。',a:'好（すき）'},
+    {q:'門の前で 耳を すませている。どんな漢字になる？',h:'「門」＋「耳」。',a:'聞'},
+    {q:'「日」と「月」が 並ぶと、どうなる？（漢字1字）',h:'太陽と月が いっしょなら…',a:'明（あかるい）'},
+    {q:'時計の 長い針と 短い針が ぴったり重なるのは、1日（24時間）に何回？',h:'12時間で何回か考えて、2倍しよう。24回ではないよ。',a:'22回',e:'12時間に 11回（0時の次は 約1時5分、…）。24時間で 22回。'},
+    {q:'バットと ボールで 合わせて 1100円。バットは ボールより 1000円高い。ボールはいくら？',h:'100円だと、バットは1100円で、合計1200円になってしまう。',a:'50円',e:'ボール50円、バット1050円で、合計1100円。'},
+    {q:'5台の機械で 5分間に 5個の部品ができる。100台の機械で 100個つくるには何分かかる？',h:'1台の機械が 1個つくるのに 何分かかる？',a:'5分',e:'1台で1個つくるのに5分。100台なら同時に100個できる。'},
+    {q:'池のハスは 毎日 2倍に ふえ、48日で 池がいっぱいになる。池の半分になるのは何日目？',h:'いっぱいになる 前の日は…？',a:'47日目',e:'次の日に2倍になって池がいっぱいになるので、その前の日が半分。'},
+    {q:'みかんが 3個あります。そこから 2個とりました。あなたが 持っているみかんは 何個？',h:'あなたは 何個「とった」？',a:'2個'},
+    {q:'1年のうち、28日が ある月は いくつ？',h:'2月だけかな？ 1月に 28日は ある？',a:'12（すべての月）'},
+    {q:'マラソンで、いちばん最後の人を 追いぬいたら、あなたは何番？',h:'いちばん最後の人の うしろに だれか いる？',a:'追いぬけない',e:'最後の人より うしろには だれもいないので、追いぬくことはできない。'},
+    {q:'取れば取るほど、大きくなるものは何？',h:'土を ほると できるよ。',a:'穴'},
+    {q:'その名前を 口に出したとたん、消えてしまうものは何？',h:'しーん…。',a:'沈黙（ちんもく）'},
+    {q:'上がることは あっても、ぜったいに 下がらないものは何？',h:'毎年、たんじょう日に 1つ ふえる。',a:'年齢（ねんれい）'},
+    {q:'1から100まで、ぜんぶ足すといくつ？',h:'1＋100、2＋99、3＋98…と組にしてみよう。',a:'5050',e:'101 になる組が 50組で、101×50＝5050。'},
+    {q:'「くるよ、くるよ」と言われているのに、ぜったいに来ないものは何？',h:'来たときには「今日」と よばれてしまう。',a:'明日（あした）'},
+    {q:'目は あるのに 何も見えない、さいほうで使う道具は何？',h:'糸を 通す 小さな穴を「目」という。',a:'針（はり）'},
+    {q:'1年に 1回しか 来ないのに、人によって 来る日が ちがうものは何？',h:'ケーキと ろうそく。',a:'誕生日'},
+    {q:'「はい」と答えると、かならず うそになる質問は どんな質問？',h:'答えるときの あなたの「状態」に注目。',a:'「あなたは 今 ねむっていますか？」など',e:'起きて答えている時点で、「はい」は うそになる。'},
+    {q:'1、1、2、3、5、8、□。□に入る数は？',h:'前の2つの数を 足してみよう。',a:'13',e:'5＋8＝13。フィボナッチ数列という。'},
+    {q:'2、3、5、7、11、□。□に入る数は？',h:'1と その数でしか 割り切れない数。',a:'13',e:'素数（そすう）の 並び。'},
+    {q:'重さ 1kgの 鉄と、1kgの わた。重いのは どっち？',h:'はかりに のせたら…？',a:'同じ（どちらも1kg）'},
+    {q:'サイコロの 向かい合う面の目を足すと、いくつになる？',h:'1の 反対側は 6。',a:'7',e:'1と6、2と5、3と4。どれも 足すと7。'},
+  ]},
+  {key:'hs',name:'こうこうせい〜',short:'こうこう〜',sub:'15さい〜',list:[
+    {q:'あるマンションの10階に住む男。エレベーターで帰るとき、晴れの日は7階で降りて階段を使うが、雨の日は10階まで乗っていく。なぜ？',h:'雨の日だけ 持っているものがある。',a:'背が低くて10階のボタンに手が届かない。雨の日は傘で押せる。'},
+    {q:'父親と息子が事故にあい、息子が病院に運ばれた。外科医は「この子は私の息子です。手術はできません」と言った。どういうこと？',h:'「外科医＝男性」と決めつけていない？',a:'外科医は 息子の 母親だった。'},
+    {q:'1日に何度も ひげをそるのに、いつも ひげがのびている男がいる。なぜ？',h:'そっているのは「自分の」ひげ？',a:'床屋さん（ほかの人のひげをそっている）'},
+    {q:'同じ日に、同じ母親から生まれた2人。でも「ふたご」ではない。なぜ？',h:'生まれたのは 2人だけ？',a:'三つ子（以上）のうちの2人だから'},
+    {q:'たて・よこ・深さ 1mずつの穴がある。この穴の中の土は 何立方メートル？',h:'穴とは…？',a:'0（穴なので土はない）'},
+    {q:'ろうそくが10本ともっている。風で3本が消えた。最後に残っているろうそくは何本？',h:'消えなかったろうそくは、最後にどうなる？',a:'3本',e:'消えた3本は燃えずに残り、ほかの7本は燃えつきてしまう。'},
+    {q:'黒い服の男が、街灯の消えた道を歩いていた。ライトをつけていない車が走ってきたが、ちゃんと止まれた。なぜ？',h:'「夜」とは 書いていない。',a:'昼間だったから'},
+    {q:'部屋の外にスイッチが3つ、部屋の中に電球が1つ。部屋に入れるのは1回だけ。どのスイッチが電球のものか、確実にわかる方法は？',h:'電球が教えてくれるのは「明るさ」だけ？',a:'1つ目を長めにつけて消し、2つ目をつけてから部屋に入る。',e:'点いていれば2つ目、消えていて熱ければ1つ目、消えていて冷たければ3つ目。'},
+    {q:'見た目が同じコイン9枚のうち、1枚だけ少し重い。てんびんを2回だけ使って、重い1枚を見つけるには？',h:'2つに分けるより、3つに分けたほうが…',a:'3枚ずつ3組に分けて量る。',e:'1回目で重い組がわかる（つり合えば残りの組）。2回目はその3枚から1枚ずつ量れば決まる。'},
+    {q:'アメリカとカナダの国境の真上に飛行機が落ちた。生存者は どちらの国に埋葬する？',h:'生存者とは…？',a:'埋葬しない（生きているから）'},
+    {q:'分かれ道に、正直村の人と うそつき村の人のどちらか1人がいる。1回だけの質問で、正直村への道を知るには？',h:'どちらの村の人でも、同じ答えになる質問を考えよう。',a:'「あなたの村はどちらですか？」と聞く。',e:'正直者は正直村を指す。うそつきは自分の村（うそつき村）をうそで答えるので、やはり正直村を指す。'},
+    {q:'3人が1万円ずつ出して3万円の部屋に泊まった。店主は「本当は2万5千円」と言って、ボーイに5千円を返させた。ボーイは2千円をこっそり取り、3人に千円ずつ返した。3人は9千円ずつで計2万7千円、ボーイの2千円と合わせて2万9千円。あとの千円はどこ？',h:'2万7千円の中に、ボーイの2千円はもう入っている。',a:'どこにも消えていない（足し算のしかたが間違い）',e:'正しくは 2万7千円＝宿代2万5千円＋ボーイの2千円。返した3千円と合わせて3万円。'},
+    {q:'雨の中を、傘も帽子もなしに歩いた男。でも髪の毛は1本もぬれなかった。なぜ？',h:'ぬれる「髪の毛」は ある？',a:'髪の毛がなかったから'},
+    {q:'太郎のお母さんには 子どもが3人いる。一郎、二郎、そして もう1人は？',h:'問題文の最初を よく読んで。',a:'太郎'},
+    {q:'「りんご」「みかん」「まぜ」とラベルの貼られた箱が3つ。ラベルは全部まちがい。1つの箱から1個だけ取り出して、全部のラベルを正しく貼り直すには？',h:'「まぜ」と書かれた箱の中身は、まざっていない。',a:'「まぜ」の箱から1個取り出す。',e:'たとえば りんごが出たら、その箱は「りんご」。残る「みかん」ラベルの箱は「まぜ」、「りんご」ラベルの箱は「みかん」に決まる。'},
+    {q:'1時に1回、2時に2回…と、時刻の数だけ鐘が鳴る時計。1日（24時間）で全部で何回鳴る？',h:'1〜12を足すと78。',a:'156回',e:'12時間で 1＋2＋…＋12＝78回。1日で 78×2＝156回。'},
+    {q:'何人集まれば、同じ誕生日の2人がいる確率が 50%を超える？',h:'思っているより ずっと少ない。',a:'23人',e:'23人で約50.7%。「誕生日のパラドックス」と呼ばれる。'},
+    {q:'3つの扉の1つに賞品。あなたが1つ選ぶと、答えを知っている司会者が 残りのはずれの扉を1つ開けた。選び直してもいい。変えるべき？',h:'最初の選択が当たっている確率は 1/3。',a:'変えたほうがいい（当たる確率が 1/3 → 2/3 になる）',e:'「モンティ・ホール問題」。最初に外れを選んでいた（2/3）なら、変えると必ず当たる。'},
+    {q:'燃えつきるのにちょうど1時間かかる線香が2本ある（燃え方はむらがある）。45分をはかるには？',h:'両はしに火をつけると…？',a:'1本は両はし、もう1本は片はしに同時に火をつける。1本目が燃えつきた（30分）ら、2本目の反対のはしにも火をつける。',e:'2本目の残り30分ぶんが、両はしから燃えて15分。30＋15＝45分。'},
+    {q:'オオカミ、ヤギ、キャベツを連れて川を渡りたい。舟には自分と もう1つしか乗せられない。オオカミとヤギ、ヤギとキャベツを残すと食べられてしまう。どうする？',h:'一度運んだものを、連れて戻ってもいい。',a:'①ヤギを渡す ②戻る ③オオカミを渡し、ヤギを連れて戻る ④キャベツを渡す ⑤戻ってヤギを渡す'},
+    {q:'100個の閉じたロッカー。1人目は全部を開け、2人目は2の倍数を、3人目は3の倍数を…と100人目まで「開いていれば閉め、閉じていれば開ける」。最後に開いているのは何個？',h:'何回さわられるか＝その番号の約数の数。',a:'10個（1, 4, 9, …, 100）',e:'約数の数が奇数なのは平方数だけ。100以下の平方数は10個。'},
+    {q:'7分と4分の砂時計がある。9分をはかるには？',h:'4分計が落ちきるたびにひっくり返してみよう。',a:'同時に始め、4分でひっくり返す。7分で7分計をひっくり返し、8分で4分計が落ちきったら7分計をもう一度ひっくり返す。1分後が9分。',e:'8分の時点で 7分計には 1分ぶんの砂しか落ちていないので、返すとちょうど1分。'},
+    {q:'5Lと3Lのバケツがある。ちょうど4Lの水をはかるには？',h:'5Lを満たし、3Lに移すところから。',a:'5Lを満たして3Lへ（5Lに2L残る）→3Lを空にして2Lを移す→5Lを満たして3Lがいっぱいになるまで注ぐ→5Lに4L残る。'},
+    {q:'厚さ0.1mmの紙を、42回半分に折ることができたとすると、厚さはどれくらい？',h:'1回折るごとに 2倍。2の42乗は約4.4兆。',a:'約44万km（月まで届く）',e:'0.1mm×2⁴²≒44万km。地球から月までは約38万km。'},
+    {q:'今日は月曜日。「あさっての きのう」は 何曜日？',h:'あさって（水曜）の 前の日。',a:'火曜日'},
+    {q:'8を8個使った足し算で、答えを1000にするには？',h:'3けたの888から始めよう。',a:'888＋88＋8＋8＋8＝1000'},
+    {q:'6本のマッチ棒で、同じ大きさの正三角形を4つ作るには？',h:'平面で考えるのを やめてみよう。',a:'三角すい（正四面体）を組み立てる。'},
+    {q:'今がいつでも、答えが毎回変わってしまう質問は？',h:'答えたとたんに、もう答えが変わる。',a:'「今、何時？」など'},
+    {q:'持っているときは 人に話せず、話したとたんに なくなるものは何？',h:'「ここだけの話」。',a:'秘密'},
+    {q:'1枚の紙に「この文はうそである」と書いてある。この文は本当？うそ？',h:'本当だとすると…、うそだとすると…。',a:'どちらとも決められない',e:'本当ならうそになり、うそなら本当になる。「うそつきのパラドックス」。'},
+  ]},
+];
+
+// ---------- storage ----------
+const store={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+let settings=Object.assign({level:0,speak:true,autoSpeak:true,rate:0.9,shuffle:true},store.get('nz:settings',{}));
+if(!LEVELS[settings.level])settings.level=0;
+const saveSettings=()=>store.set('nz:settings',settings);
+let P; // progress for the current level: {order, pos, known, unknown, step:'q'|'hint'|'ans'}
+function newOrder(n,only){
+  const idx=only?only.slice():[...Array(n).keys()];
+  if(settings.shuffle)for(let i=idx.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[idx[i],idx[j]]=[idx[j],idx[i]]}
+  return idx;
+}
+function loadLevel(){
+  const L=LEVELS[settings.level];
+  P=store.get('nz:prog:'+L.key,null);
+  if(!P||!Array.isArray(P.order)||P.order.some(i=>!L.list[i]))P={order:newOrder(L.list.length),pos:0,known:{},unknown:{},step:'q'};
+}
+const save=()=>store.set('nz:prog:'+LEVELS[settings.level].key,P);
+
+// ---------- よみあげ ----------
+const canSpeak='speechSynthesis' in window;
+let voice=null;
+function pickVoice(){if(!canSpeak)return;const vs=speechSynthesis.getVoices().filter(v=>/^ja/i.test(v.lang));voice=vs.find(v=>/Kyoko|O-ren|Otoya|Hattori|Google/i.test(v.name))||vs[0]||null}
+if(canSpeak){pickVoice();speechSynthesis.onvoiceschanged=pickVoice}
+function speak(text){
+  if(!canSpeak||!settings.speak)return;
+  try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text.replace(/[（(].*?[）)]/g,'').replace(/[？?]/g,'？'));u.lang='ja-JP';u.rate=settings.rate;if(voice)u.voice=voice;speechSynthesis.speak(u)}catch(e){}
+}
+
+// ---------- 画面 ----------
+const $=id=>document.getElementById(id);
+function btn(label,cls,fn,dis){const b=document.createElement('button');b.type='button';if(cls)b.className=cls;b.innerHTML=label;b.onclick=fn;if(dis)b.disabled=true;return b}
+function render(){
+  const lv=$('levels');lv.innerHTML='';
+  LEVELS.forEach((L,i)=>{const b=btn(`<span class="long">${L.name}</span><span class="short">${L.short}</span><small>${L.sub}</small>`,'',()=>{if(i===settings.level)return;save();settings.level=i;saveSettings();loadLevel();render()});b.setAttribute('aria-pressed',String(i===settings.level));lv.appendChild(b)});
+  const L=LEVELS[settings.level],card=$('card');card.innerHTML='';
+  const n=P.order.length,known=Object.keys(P.known).length,unknown=Object.keys(P.unknown).length;
+  $('prog').style.width=(100*Math.min(P.pos,n)/n)+'%';
+  if(P.pos>=n){ // おわり
+    const d=document.createElement('div');d.className='done';
+    d.innerHTML=`<div class="big">🎉</div><h2>ぜんぶ おわり！</h2><p>わかった ${known}もん ／ わからなかった ${unknown}もん</p>`;
+    card.appendChild(d);
+    const acts=document.createElement('div');acts.className='acts';
+    acts.append(btn('もういちど はじめから','go',()=>{P={order:newOrder(L.list.length),pos:0,known:{},unknown:{},step:'q'};save();render();readQ()}));
+    if(unknown)acts.append(btn(`わからなかった ${unknown}もんだけ`,'soft',()=>{const only=Object.keys(P.unknown).map(Number);P={order:newOrder(L.list.length,only),pos:0,known:{},unknown:{},step:'q'};save();render();readQ()}));
+    card.appendChild(acts);
+    return;
+  }
+  const item=L.list[P.order[P.pos]];
+  const meta=document.createElement('div');meta.className='meta';
+  meta.innerHTML=`<span>だい <b>${P.pos+1}</b> もん ／ ${n}もん</span><span class="score"><span>⭕ <b>${known}</b></span><span>❌ <b>${unknown}</b></span></span>`;
+  card.appendChild(meta);
+  const q=document.createElement('p');q.className='q';q.textContent=item.q;card.appendChild(q);
+  if(P.step==='hint'||P.step==='ans'){const h=document.createElement('div');h.className='box hint';h.innerHTML='<b>ヒント：</b>';h.append(item.h);card.appendChild(h)}
+  if(P.step==='ans'){
+    const a=document.createElement('div');a.className='box ans';
+    const s=document.createElement('span');s.className='a';s.textContent=item.a;a.appendChild(s);
+    if(item.e){const e=document.createElement('span');e.className='e';e.textContent=item.e;a.appendChild(e)}
+    card.appendChild(a);
+  }
+  const acts=document.createElement('div');acts.className='acts';
+  if(canSpeak&&settings.speak)acts.append(btn('🔊 よみあげる','soft',()=>{speak(P.step==='ans'?`こたえは、${item.a}。${item.e||''}`:item.q)}));
+  if(P.step!=='ans'){
+    acts.append(btn('💡 ヒント','soft',()=>{P.step='hint';save();render();speak('ヒント。'+item.h)},P.step==='hint'));
+    acts.append(btn('こたえを 見る','go',()=>{P.step='ans';save();render();speak(`こたえは、${item.a}。${item.e||''}`)}));
+  }else{
+    acts.append(btn('⭕ わかった！','go',()=>next(true)),btn('❌ わからなかった','no',()=>next(false)));
+  }
+  card.appendChild(acts);
+}
+function next(ok){
+  const i=P.order[P.pos];
+  if(ok){P.known[i]=1;delete P.unknown[i]}else{P.unknown[i]=1;delete P.known[i]}
+  P.pos++;P.step='q';save();render();readQ();
+}
+function readQ(){if(!settings.autoSpeak)return;const L=LEVELS[settings.level];if(P.pos<P.order.length)speak(L.list[P.order[P.pos]].q)}
+
+// ---------- せってい ----------
+$('gear').onclick=()=>{
+  const sh=$('sheet');sh.innerHTML='';
+  const head=document.createElement('div');head.className='head';head.innerHTML='<h2>せってい</h2>';head.appendChild(btn('とじる','close',()=>{$('modal').hidden=true}));sh.appendChild(head);
+  const opt=(type,name,checked,label,note,fn)=>{const l=document.createElement('label');l.className='opt';l.innerHTML=`<input type="${type}" name="${name}" ${checked?'checked':''}><span>${label}${note?`<small>${note}</small>`:''}</span>`;l.querySelector('input').onchange=e=>fn(e.target.checked);return l};
+  const h=t=>{const e=document.createElement('h3');e.textContent=t;sh.appendChild(e)};
+  h('よみあげ');
+  if(!canSpeak){const p=document.createElement('p');p.className='note';p.textContent='このブラウザでは よみあげが つかえません。';sh.appendChild(p)}
+  sh.appendChild(opt('checkbox','sp',settings.speak,'よみあげボタンを 出す','iPadの こえで もんだいや こたえを よみあげます。字が よめない子も あそべます。',v=>{settings.speak=v;saveSettings();render()}));
+  sh.appendChild(opt('checkbox','asp',settings.autoSpeak,'つぎの もんだいを じどうで よみあげる','「わかった」「わからなかった」を おすと、つぎの もんだいを すぐ よみあげます。',v=>{settings.autoSpeak=v;saveSettings()}));
+  const row=document.createElement('div');row.className='row';
+  [[0.7,'ゆっくり'],[0.9,'ふつう'],[1.1,'はやい']].forEach(([r,l])=>row.appendChild(opt('radio','rate',settings.rate===r,l,'',()=>{settings.rate=r;saveSettings();speak('こえの はやさは、これくらいです')})));
+  sh.appendChild(row);
+  h('もんだいの じゅんばん');
+  sh.appendChild(opt('checkbox','sh',settings.shuffle,'ばらばらに だす','オフにすると、いつも おなじ じゅんばんで でます（つぎに「はじめから」に したときから）。',v=>{settings.shuffle=v;saveSettings()}));
+  h('きろく');
+  const p=document.createElement('p');p.className='note';p.textContent='いまの むずかしさの「わかった・わからなかった」を けして、さいしょから やりなおします。';sh.appendChild(p);
+  sh.appendChild(btn('いまの むずかしさを はじめから','reset',()=>{const L=LEVELS[settings.level];P={order:newOrder(L.list.length),pos:0,known:{},unknown:{},step:'q'};save();$('modal').hidden=true;render()}));
+  $('modal').hidden=false;
+};
+$('modal').onclick=e=>{if(e.target.id==='modal')$('modal').hidden=true};
+
+loadLevel();render();
+})();
+</script>
+
+<script>
+if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('../sw.js').catch(()=>{}))}
+</script>
+</body>
+</html>

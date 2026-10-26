@@ -1,5 +1,5 @@
-const CACHE='banasobi-6f13866bc8';
-const CORE=['./','index.html','shogi/','shogi/index.html','reversi/','reversi/index.html','manifest.webmanifest','icon-180.png','icon-192.png','icon-512.png','reversi-icon.png'];
+const CACHE='banasobi-01b7f0b5fa';
+const CORE=['./','index.html','shogi/','shogi/index.html','reversi/','reversi/index.html','nazo/','nazo/index.html','nazo-icon.png','manifest.webmanifest','icon-180.png','icon-192.png','icon-512.png','reversi-icon.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
 self.addEventListener('fetch',e=>{

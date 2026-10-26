@@ -23,8 +23,8 @@ body{margin:0;background:#23392d;color:#fff6e3;font-family:"Zen Maru Gothic","Hi
 main{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;
   padding:calc(env(safe-area-inset-top,0px) + 24px) 16px calc(env(safe-area-inset-bottom,0px) + 24px)}
 h1{margin:0;font-size:clamp(26px,5vw,40px);font-weight:900;letter-spacing:.06em;text-align:center}
-.games{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px;width:min(760px,100%)}
-a.game{display:flex;flex-direction:column;align-items:center;gap:12px;padding:28px 20px 24px;border-radius:24px;
+.games{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px;width:min(1100px,100%)}
+a.game{display:flex;flex-direction:column;align-items:center;gap:12px;padding:26px 16px 22px;border-radius:24px;
   background:#fff6e3;color:#4a3521;text-decoration:none;box-shadow:0 10px 30px rgba(0,0,0,.35);transition:transform .15s}
 a.game:active{transform:scale(.97)}
 a.game:focus-visible{outline:4px solid #ffe36e;outline-offset:3px}
@@ -38,8 +38,9 @@ a.game i{font-style:normal;margin-top:4px;background:#3f9a5b;color:#fff;font-wei
 <main>
   <h1>なにで あそぶ？</h1>
   <div class="games">
-    <a class="game" href="shogi/"><img src="icon-192.png" alt=""><b>どうぶつしょうぎ</b><span>どこでも・ごろごろ・おおきな森<br>つめしょうぎ・おけいこ</span><i>あそぶ ▶</i></a>
-    <a class="game" href="reversi/"><img src="reversi-icon.png" alt=""><b>リバーシ</b><span>みんなで（2〜4にん）・コンピュータ<br>もんだい・おけいこ</span><i>あそぶ ▶</i></a>
+    <a class="game" href="shogi/"><img src="icon-192.png" alt=""><b>どうぶつしょうぎ</b><span>3×4・5×6・9×9<br>つめしょうぎ・おけいこ</span><i>あそぶ ▶</i></a>
+    <a class="game" href="reversi/"><img src="reversi-icon.png" alt=""><b>リバーシ</b><span>2〜4にん・コンピュータ<br>もんだい・おけいこ</span><i>あそぶ ▶</i></a>
+    <a class="game" href="nazo/"><img src="nazo-icon.png" alt=""><b>なぞなぞ</b><span>4つの むずかしさ<br>よみあげつき</span><i>あそぶ ▶</i></a>
   </div>
 </main>
 
