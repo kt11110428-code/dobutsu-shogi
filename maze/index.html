@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#23392d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="盤あそび">
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="apple-touch-icon" href="../icon-180.png">
+<link rel="icon" href="../icon-192.png">
+<style>
+#app{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+a.brand{color:inherit;text-decoration:none;display:flex;align-items:center;gap:8px}
+a.brand .hm{font-size:13px;font-weight:700;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18)}
+</style>
+<title>めいろ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap">
+<style>
+:root{
+  color-scheme: dark;
+  --forest:#23392d; --forest2:#2f4a3a; --cream:#fff6e3; --muted:#b9c9b6;
+  --hi:#ffe36e; --ink:#4a3521; --sub:#7a5a3a; --go:#3f9a5b; --paper2:#f3e6c8;
+  --font:"Zen Maru Gothic","Hiragino Maru Gothic ProN","Hiragino Sans",sans-serif;
+}
+[hidden]{display:none!important}
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{margin:0;background:var(--forest);color:var(--cream);font-family:var(--font);-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;overflow:hidden}
+button{font-family:inherit;cursor:pointer;touch-action:manipulation}
+button:focus-visible{outline:3px solid var(--hi);outline-offset:2px}
+#app{height:100%;height:100dvh;display:flex;flex-direction:column;padding-inline:16px}
+.bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding-block:8px;border-bottom:1px solid rgba(255,255,255,.08);flex:none}
+.brand{font-weight:900;font-size:15px;letter-spacing:.04em;margin-right:auto;white-space:nowrap}
+.seg{display:flex;background:rgba(0,0,0,.25);border-radius:12px;padding:3px;gap:3px;min-width:0}
+.seg button{border:0;background:transparent;color:var(--muted);font-weight:700;font-size:14px;padding:7px 11px;border-radius:9px;line-height:1.15;white-space:nowrap;flex:1 1 auto}
+.seg button small{display:block;font-size:11px;font-weight:500;opacity:.8}
+.seg button[aria-pressed="true"]{background:var(--cream);color:var(--ink)}
+.tools{display:flex;gap:6px}
+.tools button{border:1px solid rgba(255,255,255,.18);background:var(--forest2);color:var(--cream);font-weight:700;font-size:14px;padding:9px 12px;border-radius:10px;white-space:nowrap}
+.tools button[aria-pressed="true"]{background:var(--hi);color:var(--ink)}
+.stage{flex:1;min-height:0;display:grid;place-items:center;position:relative;overflow:hidden;padding-block:8px}
+canvas{display:block;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.35);touch-action:none;background:var(--cream)}
+.pad{flex:none;display:flex;justify-content:center;align-items:center;gap:10px;padding-block:6px 10px}
+.pad .info{font-weight:700;font-size:14px;color:var(--muted);min-width:7em;text-align:center;font-variant-numeric:tabular-nums}
+.pad button{width:54px;height:54px;border-radius:14px;border:1px solid rgba(255,255,255,.18);background:var(--forest2);color:var(--cream);font-size:22px;font-weight:900}
+.pad .cross{display:grid;grid-template-columns:repeat(3,54px);grid-template-rows:repeat(2,44px);gap:4px}
+.pad .cross button{height:44px}
+.pad .cross .up{grid-column:2}
+.pad .cross .left{grid-column:1;grid-row:2}
+.pad .cross .down{grid-column:2;grid-row:2}
+.pad .cross .right{grid-column:3;grid-row:2}
+.ov{position:absolute;inset:0;display:grid;place-items:center;background:rgba(20,32,25,.55);z-index:10}
+.pane{background:var(--cream);color:var(--ink);border-radius:20px;padding:22px 26px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.4);max-width:calc(100% - 32px)}
+.pane .big{font-size:60px;line-height:1}
+.pane h2{margin:6px 0;font-size:30px;font-weight:900}
+.pane p{margin:0 0 14px;font-size:17px;font-weight:700;color:var(--sub)}
+.pane button{border:0;border-radius:12px;padding:12px 20px;font-weight:900;font-size:17px;background:var(--go);color:#fff}
+@media (max-width:700px){
+  .bar{gap:6px;padding-block:6px}
+  .brand{font-size:13px}
+  a.brand .bn{display:none}
+  .seg{flex:1 1 100%;order:3}
+  .seg button{padding:7px 4px;font-size:12.5px}
+  .seg button small{display:none}
+  .tools button{padding:7px 9px;font-size:12.5px}
+}
+@media (max-height:560px){
+  .stage{margin-right:184px} /* keep the maze clear of the arrow buttons */
+  .pad{position:absolute;right:16px;bottom:8px;padding:0;z-index:5}
+  .pad .info{display:none}
+}
+</style>
+</head>
+<body>
+
+
+<div id="app">
+  <div class="bar">
+    <a class="brand" href="../"><span class="hm">◀ ホーム</span><span class="bn">めいろ</span></a>
+    <div class="seg" id="levels"></div>
+    <div class="tools">
+      <button id="ans" type="button" aria-pressed="false">こたえ</button>
+      <button id="newb" type="button">つぎの めいろ</button>
+    </div>
+  </div>
+  <div class="stage" id="stage"><canvas id="cv"></canvas></div>
+  <div class="pad">
+    <div class="info" id="info"></div>
+    <div class="cross">
+      <button class="up" type="button" data-d="0" aria-label="うえ">▲</button>
+      <button class="left" type="button" data-d="3" aria-label="ひだり">◀</button>
+      <button class="down" type="button" data-d="2" aria-label="した">▼</button>
+      <button class="right" type="button" data-d="1" aria-label="みぎ">▶</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(()=>{
+// ---------- original piece illustrations (viewBox 0 0 100 100) ----------
+const OL='stroke="#4a3121" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"';
+const OLT=w=>`stroke="#4a3121" stroke-width="${w}" stroke-linejoin="round" stroke-linecap="round"`;
+const EYE=(x,y)=>`<circle cx="${x}" cy="${y}" r="3.8" fill="#3b2a1e"/><circle cx="${x+1.3}" cy="${y-1.3}" r="1.2" fill="#fff"/>`;
+const CHEEK=(x,y)=>`<ellipse cx="${x}" cy="${y}" rx="5" ry="3" fill="#f28c8c" opacity=".55"/>`;
+const MOUTH=(y)=>`<path d="M50,${y} Q46,${y+6} 42,${y+4} M50,${y} Q54,${y+6} 58,${y+4}" fill="none" ${OL}/>`;
+const ART={
+  lion:(()=>{let m='';for(let k=0;k<12;k++){const a=k*Math.PI/6;m+=`<circle cx="${(50+34*Math.cos(a)).toFixed(1)}" cy="${(52+34*Math.sin(a)).toFixed(1)}" r="13" fill="#e58a2e" ${OL}/>`}
+    return m+`<circle cx="50" cy="52" r="36" fill="#e58a2e"/>`+
+    `<circle cx="31" cy="33" r="8" fill="#ffd9a0" ${OL}/><circle cx="69" cy="33" r="8" fill="#ffd9a0" ${OL}/>`+
+    `<circle cx="50" cy="54" r="26" fill="#ffd9a0" ${OL}/>`+EYE(41,50)+EYE(59,50)+CHEEK(35,60)+CHEEK(65,60)+
+    `<path d="M45,58 Q50,55 55,58 Q50,64 45,58Z" fill="#7a3f22"/>`+MOUTH(62)})(),
+  kirin:`<path d="M40,31 L36,13 M60,31 L64,13" fill="none" stroke="#4a3121" stroke-width="4" stroke-linecap="round"/>`+
+    `<circle cx="36" cy="11" r="5.5" fill="#a0622d" ${OL}/><circle cx="64" cy="11" r="5.5" fill="#a0622d" ${OL}/>`+
+    `<ellipse cx="23" cy="40" rx="12" ry="6" transform="rotate(-25 23 40)" fill="#f4c95d" ${OL}/><ellipse cx="77" cy="40" rx="12" ry="6" transform="rotate(25 77 40)" fill="#f4c95d" ${OL}/>`+
+    `<ellipse cx="50" cy="50" rx="23" ry="25" fill="#f4c95d" ${OL}/>`+
+    `<ellipse cx="43" cy="34" rx="5" ry="4" fill="#c98a3a"/><ellipse cx="58" cy="32" rx="4" ry="3" fill="#c98a3a"/><ellipse cx="68" cy="47" rx="3" ry="4" fill="#c98a3a"/><ellipse cx="31" cy="50" rx="2.5" ry="3.5" fill="#c98a3a"/>`+
+    `<ellipse cx="50" cy="70" rx="18" ry="13" fill="#f8e2a6" ${OL}/>`+EYE(41,49)+EYE(59,49)+
+    `<circle cx="45" cy="68" r="1.9" fill="#7a4a24"/><circle cx="55" cy="68" r="1.9" fill="#7a4a24"/><path d="M44,75 Q50,79 56,75" fill="none" ${OL}/>`,
+  zou:`<circle cx="22" cy="47" r="20" fill="#a9b8e0" ${OL}/><circle cx="22" cy="47" r="11" fill="#f3c1cf"/>`+
+    `<circle cx="78" cy="47" r="20" fill="#a9b8e0" ${OL}/><circle cx="78" cy="47" r="11" fill="#f3c1cf"/>`+
+    `<circle cx="50" cy="46" r="26" fill="#bac7ea" ${OL}/>`+
+    `<path d="M50,60 Q50,80 61,86" fill="none" stroke="#4a3121" stroke-width="14" stroke-linecap="round"/><path d="M50,60 Q50,80 61,86" fill="none" stroke="#bac7ea" stroke-width="9" stroke-linecap="round"/>`+
+    `<path d="M46,70 L54,70 M47,76 L55,76" stroke="#8e9cc6" stroke-width="2" stroke-linecap="round"/>`+
+    EYE(40,44)+EYE(60,44)+CHEEK(34,54)+CHEEK(66,54),
+  hiyoko:`<path d="M45,21 Q46,9 51,16 Q55,8 57,21 Z" fill="#f7e14b" ${OL}/>`+
+    `<circle cx="50" cy="54" r="34" fill="#f7e14b" ${OL}/>`+
+    `<ellipse cx="17" cy="62" rx="7" ry="11" transform="rotate(25 17 62)" fill="#efcc2c" ${OL}/><ellipse cx="83" cy="62" rx="7" ry="11" transform="rotate(-25 83 62)" fill="#efcc2c" ${OL}/>`+
+    EYE(39,48)+EYE(61,48)+CHEEK(31,58)+CHEEK(69,58)+
+    `<path d="M44,56 L56,56 L50,64 Z" fill="#f39a2b" ${OL}/>`,
+  niwatori:`<circle cx="41" cy="20" r="7" fill="#e0463c" ${OL}/><circle cx="59" cy="20" r="7" fill="#e0463c" ${OL}/><circle cx="50" cy="15" r="8.5" fill="#e0463c" ${OL}/>`+
+    `<circle cx="50" cy="53" r="32" fill="#fffaf0" ${OL}/>`+
+    `<ellipse cx="19" cy="62" rx="7" ry="11" transform="rotate(25 19 62)" fill="#f1e9da" ${OL}/><ellipse cx="81" cy="62" rx="7" ry="11" transform="rotate(-25 81 62)" fill="#f1e9da" ${OL}/>`+
+    EYE(39,46)+EYE(61,46)+CHEEK(31,56)+CHEEK(69,56)+
+    `<ellipse cx="50" cy="69" rx="5" ry="7" fill="#e0463c" ${OL}/><path d="M43,54 L57,54 L50,63 Z" fill="#f39a2b" ${OL}/>`,
+  inu:`<circle cx="50" cy="52" r="29" fill="#eab77c" ${OL}/>`+
+    `<ellipse cx="60" cy="45" rx="9" ry="8" fill="#c98a4f"/>`+
+    `<ellipse cx="22" cy="50" rx="10" ry="19" transform="rotate(18 22 50)" fill="#9a6231" ${OL}/><ellipse cx="78" cy="50" rx="10" ry="19" transform="rotate(-18 78 50)" fill="#9a6231" ${OL}/>`+
+    `<ellipse cx="50" cy="65" rx="15" ry="11" fill="#fbe7cc" ${OL}/>`+EYE(40,47)+EYE(60,46)+
+    `<ellipse cx="50" cy="60" rx="5.5" ry="4" fill="#3b2a1e"/>`+MOUTH(64),
+  neko:`<path d="M25,42 L27,13 L47,28 Z" fill="#d8cfc4" ${OL}/><path d="M75,42 L73,13 L53,28 Z" fill="#d8cfc4" ${OL}/>`+
+    `<path d="M29,33 L30,20 L39,27 Z M71,33 L70,20 L61,27 Z" fill="#f3b3bf"/>`+
+    `<ellipse cx="50" cy="54" rx="30" ry="27" fill="#d8cfc4" ${OL}/>`+
+    `<path d="M44,31 L44,38 M50,29 L50,37 M56,31 L56,38" stroke="#9d9080" stroke-width="3" stroke-linecap="round"/>`+
+    EYE(40,50)+EYE(60,50)+CHEEK(34,60)+CHEEK(66,60)+
+    `<path d="M47,58 L53,58 L50,61.5 Z" fill="#f08a9a" ${OLT(1.5)}/>`+MOUTH(61)+
+    `<path d="M29,57 L14,54 M29,62 L14,64 M71,57 L86,54 M71,62 L86,64" stroke="#4a3121" stroke-width="1.8" stroke-linecap="round"/>`,
+  usagi:`<ellipse cx="38" cy="26" rx="8.5" ry="22" transform="rotate(-8 38 26)" fill="#fdfaf6" ${OL}/><ellipse cx="38" cy="28" rx="4" ry="14" transform="rotate(-8 38 28)" fill="#f6b9c8"/>`+
+    `<ellipse cx="62" cy="26" rx="8.5" ry="22" transform="rotate(8 62 26)" fill="#fdfaf6" ${OL}/><ellipse cx="62" cy="28" rx="4" ry="14" transform="rotate(8 62 28)" fill="#f6b9c8"/>`+
+    `<circle cx="50" cy="62" r="26" fill="#fdfaf6" ${OL}/>`+EYE(41,58)+EYE(59,58)+CHEEK(35,68)+CHEEK(65,68)+
+    `<ellipse cx="50" cy="66" rx="3.2" ry="2.5" fill="#f08a9a"/>`+MOUTH(68),
+  inoshishi:`<path d="M43,26 L46,16 L50,23 L54,16 L57,26 Z" fill="#5e3c22" ${OL}/>`+
+    `<path d="M22,36 L24,15 L41,27 Z" fill="#7d5230" ${OL}/><path d="M78,36 L76,15 L59,27 Z" fill="#7d5230" ${OL}/>`+
+    `<ellipse cx="50" cy="52" rx="31" ry="28" fill="#9b6b43" ${OL}/>`+
+    `<path d="M37,72 Q32,64 38,60 L41,66 Z M63,72 Q68,64 62,60 L59,66 Z" fill="#fffaf0" ${OLT(1.8)}/>`+
+    `<ellipse cx="50" cy="66" rx="15" ry="11" fill="#e7a98c" ${OL}/>`+
+    `<ellipse cx="45" cy="66" rx="2.4" ry="3.6" fill="#7a3f22"/><ellipse cx="55" cy="66" rx="2.4" ry="3.6" fill="#7a3f22"/>`+
+    EYE(39,46)+EYE(61,46),
+};
+const LION=ART.lion;
+const LEVELS=[{name:'かんたん',sub:'ちいさい',n:5},{name:'ふつう',sub:'',n:8},{name:'むずかしい',sub:'',n:12},{name:'すごく むずかしい',sub:'おとな',n:18}];
+const N=1,E=2,S=4,W=8, DIR=[[0,-1,N,S],[1,0,E,W],[0,1,S,N],[-1,0,W,E]]; // dx,dy,wall here,wall there
+const store={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+let level=store.get('mz:level',0);if(!LEVELS[level])level=0;
+let M,showAns=false;
+const $=id=>document.getElementById(id);
+
+// ---------- maze (randomized depth-first search: one path between any two cells) ----------
+function makeMaze(){
+  const st=$('stage').getBoundingClientRect(),short=LEVELS[level].n;
+  const landscape=st.width>st.height,ratio=Math.max(st.width,st.height)/Math.max(1,Math.min(st.width,st.height));
+  const long=Math.max(short,Math.min(Math.round(short*ratio),short*2));
+  const cols=landscape?long:short,rows=landscape?short:long;
+  const w=new Array(cols*rows).fill(N|E|S|W),seen=new Uint8Array(cols*rows),stack=[0];seen[0]=1;
+  while(stack.length){
+    const c=stack[stack.length-1],x=c%cols,y=Math.floor(c/cols);
+    const opts=DIR.filter(([dx,dy])=>{const nx=x+dx,ny=y+dy;return nx>=0&&ny>=0&&nx<cols&&ny<rows&&!seen[ny*cols+nx]});
+    if(!opts.length){stack.pop();continue}
+    const [dx,dy,a,b]=opts[Math.floor(Math.random()*opts.length)],n=(y+dy)*cols+x+dx;
+    w[c]&=~a;w[n]&=~b;seen[n]=1;stack.push(n);
+  }
+  M={cols,rows,w,trail:[0],goal:cols*rows-1,start:Date.now(),done:false,moves:0};
+  showAns=false;$('ans').setAttribute('aria-pressed','false');
+}
+const open=(c,d)=>!(M.w[c]&DIR[d][2]);
+function step(c,d){const x=c%M.cols+DIR[d][0],y=Math.floor(c/M.cols)+DIR[d][1];return y*M.cols+x}
+function path(a,b,limit){ // shortest route a→b through the maze (BFS); null if longer than limit
+  const prev=new Int32Array(M.cols*M.rows).fill(-1),q=[a];prev[a]=a;
+  while(q.length){const c=q.shift();if(c===b)break;for(let d=0;d<4;d++)if(open(c,d)){const n=step(c,d);if(prev[n]<0){prev[n]=c;q.push(n)}}}
+  if(prev[b]<0)return null;const p=[];for(let c=b;c!==a;c=prev[c])p.push(c);p.reverse();
+  return limit&&p.length>limit?null:p;
+}
+function moveTo(c){ // one cell; stepping back onto the trail erases it
+  const t=M.trail;if(t.length>1&&t[t.length-2]===c)t.pop();else t.push(c);
+  M.moves++;
+  if(c===M.goal&&!M.done){M.done=true;M.time=Math.round((Date.now()-M.start)/1000);setTimeout(()=>{draw();win()},120)}
+}
+const here=()=>M.trail[M.trail.length-1];
+
+// ---------- drawing ----------
+const cv=$('cv'),ctx=cv.getContext('2d');
+let cell=20,lion=null;
+{const img=new Image();img.onload=()=>{lion=img;draw()};
+ img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">${LION}</svg>`);}
+function fit(){
+  const st=$('stage'),r=st.getBoundingClientRect(),pad=16;
+  cell=Math.max(8,Math.floor(Math.min((r.width-pad)/M.cols,(r.height-pad)/M.rows)));
+  const PW=cell*M.cols,PH=cell*M.rows,dpr=window.devicePixelRatio||1;
+  cv.style.width=PW+'px';cv.style.height=PH+'px';cv.width=Math.round(PW*dpr);cv.height=Math.round(PH*dpr);
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+function center(c){return [(c%M.cols+.5)*cell,(Math.floor(c/M.cols)+.5)*cell]}
+function line(pts,color,width){if(pts.length<2)return;ctx.strokeStyle=color;ctx.lineWidth=width;ctx.lineCap='round';ctx.lineJoin='round';ctx.beginPath();pts.forEach((c,i)=>{const [x,y]=center(c);i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.stroke()}
+function draw(){
+  const PW=cell*M.cols,PH=cell*M.rows; // picture size (not the wall flag W)
+  ctx.fillStyle='#fff6e3';ctx.fillRect(0,0,PW,PH);
+  // start & goal squares
+  ctx.fillStyle='#d8f0d4';ctx.fillRect(0,0,cell,cell);
+  ctx.fillStyle='#fde2c8';ctx.fillRect((M.cols-1)*cell,(M.rows-1)*cell,cell,cell);
+  if(showAns){const p=path(here(),M.goal);if(p)line([here(),...p],'rgba(224,70,60,.35)',Math.max(3,cell*.18))}
+  line(M.trail,'rgba(63,154,91,.55)',Math.max(4,cell*.32));
+  // walls
+  ctx.strokeStyle='#4a3521';ctx.lineWidth=Math.max(2,cell*.1);ctx.lineCap='round';ctx.beginPath();
+  for(let c=0;c<M.cols*M.rows;c++){
+    const x=(c%M.cols)*cell,y=Math.floor(c/M.cols)*cell,w=M.w[c];
+    if(w&N){ctx.moveTo(x,y);ctx.lineTo(x+cell,y)}
+    if(w&W){ctx.moveTo(x,y);ctx.lineTo(x,y+cell)}
+    if(c%M.cols===M.cols-1&&(w&E)){ctx.moveTo(x+cell,y);ctx.lineTo(x+cell,y+cell)}
+    if(Math.floor(c/M.cols)===M.rows-1&&(w&S)){ctx.moveTo(x,y+cell);ctx.lineTo(x+cell,y+cell)}
+  }
+  ctx.stroke();
+  {const lw=Math.max(2,cell*.1);ctx.strokeRect(lw/2,lw/2,PW-lw,PH-lw)} // outer frame, not clipped at the edges
+  // goal flag
+  {const [gx,gy]=center(M.goal),s=cell*.34;
+   ctx.strokeStyle='#4a3521';ctx.lineWidth=Math.max(2,cell*.06);ctx.beginPath();ctx.moveTo(gx-s*.6,gy+s);ctx.lineTo(gx-s*.6,gy-s);ctx.stroke();
+   ctx.fillStyle='#e0463c';ctx.beginPath();ctx.moveTo(gx-s*.6,gy-s);ctx.lineTo(gx+s,gy-s*.45);ctx.lineTo(gx-s*.6,gy+s*.1);ctx.closePath();ctx.fill()}
+  // player
+  {const [px,py]=center(here()),s=cell*.86;
+   if(lion)ctx.drawImage(lion,px-s/2,py-s/2,s,s);else{ctx.fillStyle='#e58a2e';ctx.beginPath();ctx.arc(px,py,s/2.4,0,7);ctx.fill()}}
+  $('info').textContent=M.done?'ゴール！':`${M.cols}×${M.rows}`;
+}
+function render(){
+  const lv=$('levels');lv.innerHTML='';
+  LEVELS.forEach((L,i)=>{const b=document.createElement('button');b.type='button';b.innerHTML=L.name+(L.sub?`<small>${L.sub}</small>`:'');b.setAttribute('aria-pressed',String(i===level));
+    b.onclick=()=>{if(i===level)return;level=i;store.set('mz:level',level);makeMaze();render()};lv.appendChild(b)});
+  fit();draw();
+}
+function win(){
+  const ov=document.createElement('div');ov.className='ov';
+  ov.innerHTML=`<div class="pane"><div class="big">🎉</div><h2>ゴール！</h2><p>${M.time>=60?Math.floor(M.time/60)+'ふん ':''}${M.time%60}びょう${showAns?'（こたえを 見たよ）':''}</p></div>`;
+  const b=document.createElement('button');b.type='button';b.textContent='つぎの めいろ';b.onclick=()=>{ov.remove();makeMaze();render()};
+  ov.querySelector('.pane').appendChild(b);$('stage').appendChild(ov);b.focus();
+}
+
+// ---------- input: drag a finger along the corridors, or use the arrow buttons / keys ----------
+function cellAt(ev){const r=cv.getBoundingClientRect(),x=Math.floor((ev.clientX-r.left)/cell),y=Math.floor((ev.clientY-r.top)/cell);
+  return x<0||y<0||x>=M.cols||y>=M.rows?-1:y*M.cols+x}
+let dragging=false;
+cv.addEventListener('pointerdown',e=>{if(M.done)return;dragging=true;cv.setPointerCapture(e.pointerId);follow(e)});
+cv.addEventListener('pointermove',e=>{if(dragging)follow(e)});
+['pointerup','pointercancel'].forEach(t=>cv.addEventListener(t,()=>{dragging=false}));
+function follow(e){
+  if(M.done)return;const c=cellAt(e);if(c<0||c===here())return;
+  const p=path(here(),c,3);if(!p)return; // only nearby cells, so the finger can't jump through walls
+  for(const s of p){moveTo(s);if(M.done)break}
+  draw();
+}
+function arrow(d){if(M.done)return;if(open(here(),d)){moveTo(step(here(),d));draw()}}
+document.querySelectorAll('.cross button').forEach(b=>b.onclick=()=>arrow(+b.dataset.d));
+addEventListener('keydown',e=>{const d={ArrowUp:0,ArrowRight:1,ArrowDown:2,ArrowLeft:3}[e.key];if(d!=null){e.preventDefault();arrow(d)}});
+$('ans').onclick=()=>{showAns=!showAns;$('ans').setAttribute('aria-pressed',String(showAns));draw()};
+$('newb').onclick=()=>{const o=$('stage').querySelector('.ov');if(o)o.remove();makeMaze();render()};
+let rt;addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>{fit();draw()},80)});
+if(window.ResizeObserver){let lw=0,lh=0;new ResizeObserver(es=>{const r=es[0].contentRect;if(Math.round(r.width)===lw&&Math.round(r.height)===lh)return;lw=Math.round(r.width);lh=Math.round(r.height);fit();draw()}).observe($('stage'))}
+window.__maze=()=>M; // read-only, for checking the maze in tests
+makeMaze();render();
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{fit();draw()});
+})();
+</script>
+
+<script>
+if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('../sw.js').catch(()=>{}))}
+</script>
+</body>
+</html>
